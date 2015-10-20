@@ -1,0 +1,47 @@
+<html lang="en">
+  <body>
+    <script>
+    function signIn() {
+      var auth = gapi.auth2.getAuthInstance();
+      if(!auth.currentUser.get().isSignedIn()){
+        auth.signIn().then(function () {
+          var auth_res = auth.currentUser.get().getAuthResponse();
+          console.log('Access_token: ' + auth_res.acces_token);
+          console.log('ID_token: ' + auth_res.id_token);
+          console.log('Expires in: ' + auth_res.expires_in);
+          console.log('Expires at: ' + auth_res.expires_at);
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', 'https://yourbackend.example.com/tokensignin');
+          xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          xhr.onload = function() {
+            console.log('Signed in as: ' + xhr.responseText);
+          };
+          xhr.send('idtoken=' + auth_res.id_token);
+        }, function(reason) {
+          console.log(reason.body)
+        });
+      }
+    };
+    function signOut(){
+      var auth = gapi.auth2.getAuthInstance();
+      auth.signOut().then(function () {
+        console.log('User signed out.');
+      });
+    }
+    function onLoad() {
+      var auth;
+      gapi.load('auth2', function(){
+        auth = gapi.auth2.init({
+          client_id     : '441857043088-ujkkfjr5f66e1j4qq02iueink9d5fcj8.apps.googleusercontent.com',
+          scope         : 'profile email',
+          hosted_domain : 'uconn.edu',
+          cookie_policy : 'single_host_origin'
+        });
+      });
+    };
+    </script>
+    <a href="#" onclick="signIn()">Sign-in</a>
+    <a href="#" onclick="signOut()">Sign-out</a>
+    <script src="https://apis.google.com/js/platform.js?onload=onLoad" async defer></script>
+  </body>
+</html>
