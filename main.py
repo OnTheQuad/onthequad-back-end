@@ -10,7 +10,7 @@ def login():
 @app.route('/login', methods=['POST'])
 def login_post():
 	token = request.form.get('idtoken')
-	idinfo = client.verify_id_token(token, os.environ['CLIENT_ID']);
+	idinfo = client.verify_id_token(token, os.environ['WEB_CLIENT_ID']);
 	print idinfo
 
 if __name__ == '__main__':
