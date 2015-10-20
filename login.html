@@ -4,7 +4,7 @@
     function signIn() {
       var auth = gapi.auth2.getAuthInstance();
       if(!auth.currentUser.get().isSignedIn()){
-        auth.signIn({'prompt' : 'select_account'}).then(function () {
+        auth.signIn().then(function () {
           var auth_res = auth.currentUser.get().getAuthResponse();
           console.log('Access_token: ' + auth_res.acces_token);
           console.log('ID_token: ' + auth_res.id_token);
