@@ -1,17 +1,22 @@
 <html lang="en">
+  <head>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+  </head>
   <body>
     <script>
     function signIn() {
       var auth = gapi.auth2.getAuthInstance();
       if(!auth.currentUser.get().isSignedIn()){
         auth.signIn().then(function () {
+          $('#signOut').show();
+          $('#signIn').hide();
           var auth_res = auth.currentUser.get().getAuthResponse();
           console.log('Access_token: ' + auth_res.acces_token);
           console.log('ID_token: ' + auth_res.id_token);
           console.log('Expires in: ' + auth_res.expires_in);
           console.log('Expires at: ' + auth_res.expires_at);
           var xhr = new XMLHttpRequest();
-          xhr.open('POST', 'http://onthequad-backend.herokuapp.com:5000/auth');
+          xhr.open('POST', 'http://localhost:5000/auth');
           xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
           xhr.onload = function() {
             console.log('Signed in as: ' + xhr.responseText);
@@ -25,6 +30,8 @@
     function signOut(){
       var auth = gapi.auth2.getAuthInstance();
       auth.signOut().then(function () {
+        $('#signOut').hide();
+        $('#signIn').show();
         console.log('User signed out.');
       });
     }
@@ -39,6 +46,8 @@
         }).then(function() {
           var auth = gapi.auth2.getAuthInstance()
           if (auth.isSignedIn.get() == true) {
+            $('#signOut').show();
+            $('#signIn').hide();
             var prof = auth.currentUser.get().getBasicProfile();
             var auth_res = auth.currentUser.get().getAuthResponse();
             console.log('Access_token: ' + auth_res.acces_token);
@@ -47,13 +56,16 @@
             console.log('Expires at: ' + auth_res.expires_at);
             console.log('User: ' + prof.getName())
             console.log('Email: ' + prof.getEmail())
+          } else {
+            $('#signOut').hide();
+            $('#signIn').show();
           }
         }, function(reason){});
       });
     };
     </script>
-    <a href="#" onclick="signIn()">Sign-in</a>
-    <a href="#" onclick="signOut()">Sign-out</a>
+    <button id="signIn" onclick="signIn()" style="display:none">Sign-in</a>
+    <button id="signOut" onclick="signOut()" style="display:none">Sign-out</a>
     <script src="https://apis.google.com/js/platform.js?onload=onLoad" async defer></script>
   </body>
 </html>
