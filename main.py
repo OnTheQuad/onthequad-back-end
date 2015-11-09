@@ -23,7 +23,7 @@ def shutdown_session(exception=None):
 
 # Middleware:
 # Authorization View (only used for login)
-@app.route('/api/auth/', methods=['POST'])
+@app.route('/api/auth/', methods=['POST'], strict_slashes=False)
 def auth():
 	if authorizer(request.form.get('id_token')):
 		return '', 200
