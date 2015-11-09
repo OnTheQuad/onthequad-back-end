@@ -68,7 +68,7 @@ def to_dict(row):
 
 #### API ####
 # User API:
-@app.route('/api/user/', methods=['GET'])
+@app.route('/api/user/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_user():
 	session = Session()
@@ -86,7 +86,7 @@ def get_user():
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
 # Postings API:
-@app.route('/api/postings/', methods=['GET'])
+@app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_postings():
 	session = Session()
@@ -107,14 +107,14 @@ def get_postings():
 	# Return the JSON
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
-@app.route('/api/postings/', methods=['POST'])
+@app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @auth_req
 def post_postings():
 	session = Session()
 
 
 # FOR DEBUGGING
-@app.route('/login/')
+@app.route('/login/', strict_slashes=False)
 def login():
 	return send_file('login.html')
 
