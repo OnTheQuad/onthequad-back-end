@@ -1,27 +1,28 @@
 from oauth2client import client, crypt
 from functools import wraps
-from flask import Flask, request, send_file, session, abort
+from flask import Flask, request, send_file, abort
+from flask import session
 from flask.json import jsonify
+from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.session import Session
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 from mappings import Categories, User, Postings
 
-engine = create_engine("postgres://mfdtnsymomaahc:199wYivfssJqwI2C1pSAxlf8-R@ec2-54-225-194-162.compute-1.amazonaws.com:5432/d5qp2ahp0mpd3a")
-Session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=False,
-                                         bind=engine))
-
 CLIENT_ID = '441857043088-ujkkfjr5f66e1j4qq02iueink9d5fcj8.apps.googleusercontent.com'
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://mfdtnsymomaahc:199wYivfssJqwI2C1pSAxlf8-R@ec2-54-225-194-162.compute-1.amazonaws.com:5432/d5qp2ahp0mpd3a'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# Session handler
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    Session.remove()
+# Session configuration
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+app.config['SESSION_SQLALCHEMY'] = db
+Session(app)
 
-# Middleware:
+#### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
 def auth():
@@ -31,7 +32,7 @@ def auth():
 
 # TODO: Searching here
 
-# Helpers
+#### Helpers ####
 # The actual authorizer that does the work
 def authorizer(token):
 	if not token: return False
@@ -43,18 +44,21 @@ def authorizer(token):
 			raise crypt.AppIdentityError("Wrong hosted domain.")
 	except crypt.AppIdentityError:
 		return False
-	session = Session()
-	if not session.query(exists().where(User.id == long(idinfo['sub']))).scalar():
-		session.add(User(id=long(idinfo['sub']), name=idinfo['name'], email=idinfo['email']))
-		session.commit()
-	session.close()
+
+	# Add id_token as a session cookie
+	session['id_token'] = token
+
+	# Database access
+	if not db.session.query(exists().where(User.id == long(idinfo['sub']))).scalar():
+		db.session.add(User(id=long(idinfo['sub']), name=idinfo['name'], email=idinfo['email']))
+		db.session.commit()
 	return True
 
 # Authorization Decorator (used when other Views are accessed)
 def auth_req(f):
 	@wraps(f)
 	def wrapper(*args, **kwargs):
-		if authorizer(request.headers.get('id_token', None)):
+		if authorizer(session.get('id_token', None)):
 			return f(*args, **kwargs)
 		abort(403)
 	return wrapper
@@ -71,13 +75,12 @@ def to_dict(row):
 @app.route('/api/user/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_user():
-	session = Session()
 	id = request.args.get('id')
 	email = request.args.get('email')
 	name = request.args.get('name')
 
 	# Query
-	query = session.query(User)
+	query = db.session.query(User)
 	if id: query = query.filter(User.id == id)
 	if email: query = query.filter(User.email == email)
 	if name: query = query.filter(User.name == name)
@@ -89,7 +92,6 @@ def get_user():
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_postings():
-	session = Session()
 	id = request.args.get('id')
 	owner = request.args.get('owner')
 	category = request.args.get('category')
@@ -97,7 +99,7 @@ def get_postings():
 	max_cost = request.args.get('max_cost')
 
 	# Query
-	query = session.query(Postings)
+	query = db.session.query(Postings)
 	if id: query = query.filter(Postings.id == id)
 	if owner: query = query.filter(Postings.owner == owner)
 	if category: query = query.filter(Postings.category == category)
@@ -110,13 +112,20 @@ def get_postings():
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @auth_req
 def post_postings():
-	session = Session()
+	return
 
 
 # FOR DEBUGGING
 @app.route('/login/', strict_slashes=False)
 def login():
 	return send_file('login.html')
+
+@app.route('/logout/', strict_slashes=False)
+def logout():
+	# Delete the session from the database
+	session.clear()
+	session.modified = True
+	return ''
 
 if __name__ == '__main__':
 	app.run(debug=True)
