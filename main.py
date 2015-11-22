@@ -1,7 +1,7 @@
 from oauth2client import client, crypt
 from functools import wraps
-from flask import Flask, request, send_file, abort
-from flask import session
+from flask import Flask, request, send_file
+from flask import session, g
 from flask.json import jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
@@ -45,10 +45,14 @@ def authorizer(token):
 	except crypt.AppIdentityError:
 		return False
 
-	# Add id_token as a session cookie
+	# Add id_token as a server side session cookie
 	session['id_token'] = token
 
-	# Database access
+	# Set some globals that might be useful for this context
+	g.user = {}
+	g.user['id'] = long(idinfo['sub'])
+
+	# Database
 	if not db.session.query(exists().where(User.id == long(idinfo['sub']))).scalar():
 		db.session.add(User(id=long(idinfo['sub']), name=idinfo['name'], email=idinfo['email']))
 		db.session.commit()
@@ -112,8 +116,29 @@ def get_postings():
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @auth_req
 def post_postings():
-	return
+	description = request.form.get('description', None)
+	category = request.form.get('category', None)
+	cost = request.form.get('cost', None)
+	title = request.form.get('title', None)
 
+	print g
+
+	# Some sanity checking
+	if not all([category, cost, title]):
+		return '', 400
+
+	# Else continue
+	post = Postings(owner=g.user['id'], description=description, cost=cost,
+		category=category, title=title)
+	
+	# Add entry to database and commit
+	# Also prevent duplicate entries due to double clicks
+	q = db.session.query(Postings)
+	if not db.session.query(q.exists().where(Postings == post)).scalar():
+		db.session.add(post)
+		db.session.commit()
+
+	return '',  200
 
 # FOR DEBUGGING
 @app.route('/login/', strict_slashes=False)
