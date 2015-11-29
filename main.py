@@ -25,6 +25,7 @@ Session(app)
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
+@crossdomain(origin='*')
 def auth():
 	if authorizer(request.form.get('id_token')):
 		return '', 200
