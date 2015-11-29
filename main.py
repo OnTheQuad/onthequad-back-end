@@ -24,12 +24,11 @@ Session(app)
 
 #### Middleware ####
 # Authorization View (only used for login)
-@app.route('/api/auth/', methods=['POST', 'OPTIONS'], strict_slashes=False)
-@crossdomain(origin='*')
+@app.route('/api/auth/', methods=['POST'], strict_slashes=False)
 def auth():
 	if authorizer(request.form.get('id_token')):
-		return '', 200
-	return '', 403
+		return '', 200, {'Access-Control-Allow-Origin': '*'} 
+	return '', 403, {'Access-Control-Allow-Origin': '*'} 
 
 # TODO: Searching here
 
@@ -77,8 +76,7 @@ def to_dict(row):
 
 #### API ####
 # User API:
-@app.route('/api/user/', methods=['GET', 'OPTIONS'], strict_slashes=False)
-@crossdomain(origin='*')
+@app.route('/api/user/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_user():
 	id = request.args.get('id')
@@ -95,8 +93,7 @@ def get_user():
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
 # Postings API:
-@app.route('/api/postings/', methods=['GET', 'OPTIONS'], strict_slashes=False)
-@crossdomain(origin='*')
+@app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @auth_req
 def get_postings():
 	id = request.args.get('id')
@@ -116,8 +113,7 @@ def get_postings():
 	# Return the JSON
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
-@app.route('/api/postings/', methods=['POST', 'OPTIONS'], strict_slashes=False)
-@crossdomain(origin='*')
+@app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
