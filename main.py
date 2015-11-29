@@ -24,7 +24,7 @@ Session(app)
 
 #### Middleware ####
 # Authorization View (only used for login)
-@app.route('/api/auth/', methods=['POST'], strict_slashes=False)
+@app.route('/api/auth/', methods=['POST', 'OPTIONS'], strict_slashes=False)
 @crossdomain(origin='*')
 def auth():
 	if authorizer(request.form.get('id_token')):
@@ -77,7 +77,8 @@ def to_dict(row):
 
 #### API ####
 # User API:
-@app.route('/api/user/', methods=['GET'], strict_slashes=False)
+@app.route('/api/user/', methods=['GET', 'OPTIONS'], strict_slashes=False)
+@crossdomain(origin='*')
 @auth_req
 def get_user():
 	id = request.args.get('id')
@@ -94,7 +95,8 @@ def get_user():
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
 # Postings API:
-@app.route('/api/postings/', methods=['GET'], strict_slashes=False)
+@app.route('/api/postings/', methods=['GET', 'OPTIONS'], strict_slashes=False)
+@crossdomain(origin='*')
 @auth_req
 def get_postings():
 	id = request.args.get('id')
@@ -114,7 +116,8 @@ def get_postings():
 	# Return the JSON
 	return jsonify(data=[to_dict(r) for r in query.all()])
 
-@app.route('/api/postings/', methods=['POST'], strict_slashes=False)
+@app.route('/api/postings/', methods=['POST', 'OPTIONS'], strict_slashes=False)
+@crossdomain(origin='*')
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
