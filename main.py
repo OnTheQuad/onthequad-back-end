@@ -94,7 +94,6 @@ def get_user():
 
 # Postings API:
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
-@auth_req
 def get_postings():
 	id = request.args.get('id')
 	owner = request.args.get('owner')
