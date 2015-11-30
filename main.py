@@ -110,7 +110,7 @@ def get_postings():
 	if max_cost: query = query.filter(Postings.cost <= max_cost)
 
 	# Return the JSON
-	return jsonify(data=[to_dict(r) for r in query.all()])
+	return jsonify(data=[to_dict(r) for r in query.all()]), {'Access-Control-Allow-Origin': '*'}
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @auth_req
