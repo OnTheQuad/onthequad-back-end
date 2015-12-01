@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Flask, request, send_file, abort
 from flask import session, g
 from flask.json import jsonify
-from flask.ext.cors import CORS
+from flask.ext.cors import cross_origin
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.orm import scoped_session, sessionmaker
