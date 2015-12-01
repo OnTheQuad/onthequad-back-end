@@ -1,3 +1,4 @@
+from os import environ
 from oauth2client import client, crypt
 from functools import wraps
 from flask import Flask, request, send_file, abort
@@ -11,10 +12,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 from mappings import Categories, User, Postings
 
-CLIENT_ID = os.environ['WEB_CLIENT_ID']
+CLIENT_ID = environ['WEB_CLIENT_ID']
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -26,7 +27,7 @@ Session(app)
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
-@cross_origin(origins=os.environ['CORS_URLS'].split(','))
+@cross_origin(origins=environ['CORS_URLS'].split(','))
 def auth():
 	if authorizer(request.form.get('id_token')):
 		return '', 200
