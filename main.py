@@ -90,7 +90,7 @@ def to_dict(row):
 #### API ####
 # User API:
 @app.route('/api/user/', methods=['GET'], strict_slashes=False)
-@cross_origin()
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def get_user():
 	id = request.args.get('id')
@@ -108,7 +108,7 @@ def get_user():
 
 # Postings API:
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
-@cross_origin()
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def get_postings():
 	id = request.args.get('id')
@@ -129,7 +129,7 @@ def get_postings():
 	return jsonify(data=[to_dict(r) for r in query.all()]), 200
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
-@cross_origin()
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
