@@ -29,7 +29,7 @@ Session(app)
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','))
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 def auth():
 	if authorizer(request.form.get('id_token')):
 		return '', 200
