@@ -1,8 +1,9 @@
 from oauth2client import client, crypt
 from functools import wraps
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, abort
 from flask import session, g
 from flask.json import jsonify
+from flask.ext.cors import CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -10,10 +11,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 from mappings import Categories, User, Postings
 
-CLIENT_ID = '441857043088-ujkkfjr5f66e1j4qq02iueink9d5fcj8.apps.googleusercontent.com'
+CLIENT_ID = os.environ['WEB_CLIENT_ID']
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://mfdtnsymomaahc:199wYivfssJqwI2C1pSAxlf8-R@ec2-54-225-194-162.compute-1.amazonaws.com:5432/d5qp2ahp0mpd3a'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -25,10 +26,19 @@ Session(app)
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
+@cross_origin(origins=os.environ['CORS_URLS'].split(','))
 def auth():
 	if authorizer(request.form.get('id_token')):
-		return '', 200, {'Access-Control-Allow-Origin': '*'} 
-	return '', 403, {'Access-Control-Allow-Origin': '*'} 
+		return '', 200
+	return '', 403
+
+# Logout View
+@app.route('/api/logout/', strict_slashes=False)
+def logout():
+	# Delete the session from the database
+	session.clear()
+	session.modified = True
+	return '', 200
 
 # TODO: Searching here
 
@@ -64,7 +74,7 @@ def auth_req(f):
 	def wrapper(*args, **kwargs):
 		if authorizer(session.get('id_token', None)):
 			return f(*args, **kwargs)
-		abort(403)
+		return '', 403
 	return wrapper
 
 # Takes a SQLAlchemy mapping and converts it to representational dictionary
@@ -94,6 +104,7 @@ def get_user():
 
 # Postings API:
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
+@auth_req
 def get_postings():
 	id = request.args.get('id')
 	owner = request.args.get('owner')
@@ -142,12 +153,5 @@ def post_postings():
 def login():
 	return send_file('login.html')
 
-@app.route('/api/logout/', strict_slashes=False)
-def logout():
-	# Delete the session from the database
-	session.clear()
-	session.modified = True
-	return ''
-
 if __name__ == '__main__':
-	app.run(host='0.0.0.0', debug=True)
+	app.run(debug=True)
