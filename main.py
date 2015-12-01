@@ -159,7 +159,7 @@ def post_postings():
 def login():
 	return send_file('login.html')
 
-if os.environ['DEBUG'] == 'True':
+if environ['DEBUG'] == 'True':
 	logging.basicConfig(level=logging.INFO)
 	logging.getLogger('flask_cors').level = logging.DEBUG
 
