@@ -16,8 +16,6 @@ import logging
 CLIENT_ID = environ['WEB_CLIENT_ID']
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
-logging.getLogger('flask_cors').level = logging.DEBUG
 
 app.config['SQLALCHEMY_DATABASE_URI'] = environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -160,6 +158,10 @@ def post_postings():
 @app.route('/login/', strict_slashes=False)
 def login():
 	return send_file('login.html')
+
+if os.environ['DEBUG'] == 'True':
+	logging.basicConfig(level=logging.INFO)
+	logging.getLogger('flask_cors').level = logging.DEBUG
 
 if __name__ == '__main__':
 	app.run(debug=True)
