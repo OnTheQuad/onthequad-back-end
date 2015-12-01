@@ -4,17 +4,21 @@ from functools import wraps
 from flask import Flask, request, send_file, abort
 from flask import session, g
 from flask.json import jsonify
-from flask.ext.cors import cross_origin
+from flask.ext.cors import cross_origin, CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 from mappings import Categories, User, Postings
+import logging
 
 CLIENT_ID = environ['WEB_CLIENT_ID']
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('flask_cors').level = logging.DEBUG
+
 app.config['SQLALCHEMY_DATABASE_URI'] = environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -88,6 +92,7 @@ def to_dict(row):
 #### API ####
 # User API:
 @app.route('/api/user/', methods=['GET'], strict_slashes=False)
+@cross_origin()
 @auth_req
 def get_user():
 	id = request.args.get('id')
@@ -105,6 +110,7 @@ def get_user():
 
 # Postings API:
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
+@cross_origin()
 @auth_req
 def get_postings():
 	id = request.args.get('id')
@@ -122,9 +128,10 @@ def get_postings():
 	if max_cost: query = query.filter(Postings.cost <= max_cost)
 
 	# Return the JSON
-	return jsonify(data=[to_dict(r) for r in query.all()]), 200, {'Access-Control-Allow-Origin': '*'}
+	return jsonify(data=[to_dict(r) for r in query.all()]), 200
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
+@cross_origin()
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
