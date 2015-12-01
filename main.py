@@ -156,6 +156,7 @@ def post_postings():
 
 # FOR DEBUGGING
 @app.route('/login/', strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 def login():
 	return send_file('login.html')
 
