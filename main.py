@@ -120,8 +120,6 @@ def post_postings():
 	cost = request.form.get('cost', None)
 	title = request.form.get('title', None)
 
-	print g
-
 	# Some sanity checking
 	if not all([category, cost, title]):
 		return '', 400
@@ -144,7 +142,7 @@ def post_postings():
 def login():
 	return send_file('login.html')
 
-@app.route('/logout/', strict_slashes=False)
+@app.route('/api/logout/', strict_slashes=False)
 def logout():
 	# Delete the session from the database
 	session.clear()
