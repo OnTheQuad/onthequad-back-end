@@ -129,7 +129,7 @@ def get_postings():
 	return jsonify(data=[to_dict(r) for r in query.all()]), 200
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
-@cross_origin(origins='chrome-extension://hgmloofddffdnphfgcellkdfbfbjeloo'.split(','), supports_credentials=True)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
