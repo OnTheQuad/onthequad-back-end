@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy import DateTime, Numeric
+from sqlalchemy import DateTime, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
 
 Base = declarative_base()
@@ -34,5 +34,9 @@ class Postings(Base):
 	description = Column(String)
 	cost = Column(Numeric(precision=2, scale=16))
 	category = Column(Integer, ForeignKey('categories.id'))
-	timestamp = Column(DateTime)
+	timestamp = Column(DateTime, default=func.now())
 	title = Column(String)
+
+	def __repr__(self):
+		return "<Postings(id='%s', owner='%s', description='%s', cost='%s', category='%s', timestamp='%s', title='%s')>" % (
+			self.id, self.owner, self.description, self.cost, self.category, self.timestamp, self.title)

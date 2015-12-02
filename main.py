@@ -7,8 +7,6 @@ from flask.json import jsonify
 from flask.ext.cors import cross_origin, CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy import create_engine
 from sqlalchemy.sql import exists
 from mappings import Categories, User, Postings
 import logging
@@ -78,6 +76,7 @@ def auth_req(f):
 	def wrapper(*args, **kwargs):
 		if authorizer(session.get('id_token', None)):
 			return f(*args, **kwargs)
+		logging.getLogger('Main').info('Unauthorized access')
 		return '', 403
 	return wrapper
 
@@ -130,7 +129,7 @@ def get_postings():
 	return jsonify(data=[to_dict(r) for r in query.all()]), 200
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+@cross_origin(origins='chrome-extension://hgmloofddffdnphfgcellkdfbfbjeloo'.split(','), supports_credentials=True)
 @auth_req
 def post_postings():
 	description = request.form.get('description', None)
@@ -148,8 +147,9 @@ def post_postings():
 	
 	# Add entry to database and commit
 	# Also prevent duplicate entries due to double clicks
-	q = db.session.query(Postings)
-	if not db.session.query(q.exists().where(Postings == post)).scalar():
+	if not db.session.query(exists().where((Postings.owner==g.user['id']) &
+		(Postings.description==description) & (Postings.category==category) &
+		(Postings.title==title))).scalar():
 		db.session.add(post)
 		db.session.commit()
 
