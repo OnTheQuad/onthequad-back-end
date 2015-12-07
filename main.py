@@ -30,6 +30,8 @@ Session(app)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 def auth():
 	if authorizer(request.form.get('id_token')):
+		# Add id_token as a server side session cookie
+		session['id_token'] = token
 		return '', 200
 	return '', 403
 
@@ -56,9 +58,6 @@ def authorizer(token):
 			raise crypt.AppIdentityError("Wrong hosted domain.")
 	except crypt.AppIdentityError:
 		return False
-
-	# Add id_token as a server side session cookie
-	session['id_token'] = token
 
 	# Set some globals that might be useful for this context
 	g.user = {}
