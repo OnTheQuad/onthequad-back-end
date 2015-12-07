@@ -29,7 +29,8 @@ Session(app)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 def auth():
-	if authorizer(request.form.get('id_token')):
+	token = request.form.get('id_token')
+	if authorizer(token):
 		# Add id_token as a server side session cookie
 		session['id_token'] = token
 		return '', 200
