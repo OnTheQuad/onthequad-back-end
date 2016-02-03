@@ -164,7 +164,7 @@ def delete_postings():
 	# Only the owner of this post can delete it
 	query = db.session.query(Postings)
 	posting = query.filter(Postings.id == id).first()
-	if not g.user[id] == posting.owner:
+	if not g.user['id'] == posting.owner:
 		return 403
 
 	# Else continue with the delete
