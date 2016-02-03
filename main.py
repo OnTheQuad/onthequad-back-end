@@ -160,18 +160,17 @@ def post_postings():
 @auth_req
 def delete_postings():
 	id = request.args.get('id')
-	print(id)
 
 	# Only the owner of this post can delete it
 	query = db.session.query(Postings)
 	posting = query.filter(Postings.id == id).first()
 	if not g.user['id'] == posting.owner:
-		return 403
+		return '', 403
 
 	# Else continue with the delete
 	db.session.delete(posting)
 	db.session.commit()
-	return 200
+	return '', 200
 
 # FOR DEBUGGING
 @app.route('/login/', strict_slashes=False)
