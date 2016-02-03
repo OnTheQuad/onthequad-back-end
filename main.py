@@ -155,6 +155,23 @@ def post_postings():
 
 	return '',  200
 
+@app.route('/api/postings/', methods=['DELETE'], strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+@auth_req
+def delete_postings():
+	id = request.args.get('id')
+
+	# Only the owner of this post can delete it
+	query = db.session.query(Postings)
+	posting = query.filter(Postings.id == id).first()
+	if not g.user[id] == posting.owner:
+		return 403
+
+	# Else continue with the delete
+	db.session.delete(posting)
+	db.session.commit()
+	return 200
+
 # FOR DEBUGGING
 @app.route('/login/', strict_slashes=False)
 def login():
