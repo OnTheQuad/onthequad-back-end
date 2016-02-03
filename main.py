@@ -160,6 +160,7 @@ def post_postings():
 @auth_req
 def delete_postings():
 	id = request.args.get('id')
+	print(id)
 
 	# Only the owner of this post can delete it
 	query = db.session.query(Postings)
