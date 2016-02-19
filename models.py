@@ -1,11 +1,11 @@
-from sqlalchemy.ext.declarative import declarative_base
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import DateTime, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
 
-Base = declarative_base()
+db = SQLAlchemy()
 
-class Categories(Base):
+class Categories(db.Model):
 	__tablename__ = 'categories'
 	# Columns
 	id = Column(Integer, primary_key=True)
@@ -14,7 +14,7 @@ class Categories(Base):
 	def __repr__(self):
 		return "<Categories(id='%s', name='%s')>" % (self.id, self.name)
 
-class User(Base):
+class User(db.Model):
 	__tablename__ = 'user'
 	# Columns
 	id = Column(Numeric(scale=32), primary_key=True)
@@ -26,7 +26,7 @@ class User(Base):
 		return "<User(id='%s', email='%s', name='%s', wid='%s')>" % (
 			self.id, self.email, self.name, self.wid)
 
-class Postings(Base):
+class Postings(db.Model):
 	__tablename__ = 'postings'
 	# Columns
 	id = Column(Integer, primary_key=True)
