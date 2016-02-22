@@ -15,6 +15,10 @@ CLIENT_ID = environ['WEB_CLIENT_ID']
 
 app = Flask(__name__)
 
+<<<<<<< HEAD
+=======
+app.config['DEBUG'] = True
+>>>>>>> master
 app.config['SQLALCHEMY_DATABASE_URI'] = environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -111,7 +115,11 @@ def get_user():
 
 # Postings API:
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
+<<<<<<< HEAD
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+=======
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True, allow_headers=['*'])
+>>>>>>> master
 @auth_req
 def get_postings():
     id = request.args.get('id')
