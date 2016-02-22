@@ -153,7 +153,7 @@ def get_postings():
     page = query.paginate(page, per_page, error_out=False)
 
     # Return the JSON
-    return jsonify(data=[to_dict(r) for r in page.items]), 200
+    return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
 
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
