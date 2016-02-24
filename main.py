@@ -174,7 +174,7 @@ def post_postings():
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks
-    if not Postings.query(exists().where((Postings.owner==g.user['id']) &
+    if not db.session.query(exists().where((Postings.owner==g.user['id']) &
         (Postings.description==description) & (Postings.category==category) &
         (Postings.title==title))).scalar():
         db.session.add(post)
