@@ -203,14 +203,9 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
-# FOR DEBUGGING
-@app.route('/login/', strict_slashes=False)
-def login():
-    return send_file('login.html')
-
 if environ['DEBUG'] == 'True':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('flask_cors').level = logging.DEBUG
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
