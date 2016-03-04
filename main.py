@@ -117,10 +117,14 @@ def get_user():
 def get_postings():
     try:
         id = escape(request.args.get('id'))
-        owner = escape(request.args.get('owner')) or int(escape(request.args.get('owner')))
-        category = escape(request.args.get('category')) or int(escape(request.args.get('owner')))
-        cost = escape(request.args.get('cost')) or int(escape(request.args.get('cost')))
-        max_cost = escape(request.args.get('max_cost')) or int(escape(request.args.get('max_cost')))
+        owner = escape(request.args.get('owner'))
+        owner = None if not owner else int(owner)
+        category = escape(request.args.get('category'))
+        category = None if not category else int(category)
+        cost = escape(request.args.get('cost'))
+        cost = None if not cost else float(cost)
+        max_cost = escape(request.args.get('max_cost'))
+        max_cost = None if not max_cost else float(max_cost)
     except ValueError:
         return '', 400
 
