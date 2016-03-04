@@ -116,15 +116,16 @@ def get_user():
 @auth_req
 def get_postings():
     try:
-        id = escape(request.args.get('id'))
-        owner = escape(request.args.get('owner'))
-        owner = None if not owner else int(owner)
-        category = escape(request.args.get('category'))
-        category = None if not category else int(category)
-        cost = escape(request.args.get('cost'))
-        cost = None if not cost else float(cost)
-        max_cost = escape(request.args.get('max_cost'))
-        max_cost = None if not max_cost else float(max_cost)
+        id = request.args.get('id')
+        if id: id = int(escape(id))
+        owner = request.args.get('owner')
+        if owner: owner = int(escape(owner))
+        category = request.args.get('category')
+        if category: category = int(escape(category))
+        cost = request.args.get('cost')
+        if cost: cost = float(escape(cost))
+        max_cost = request.args.get('max_cost')
+        if max_cost: max_cost = float(escape(max_cost))
     except ValueError:
         return '', 400
 
@@ -166,10 +167,14 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    description = escape(request.form.get('description'))
-    category = escape(request.form.get('category'))
-    cost = escape(request.form.get('cost'))
-    title = escape(request.form.get('title'))
+    description = request.form.get('description')
+    if description: description = escape(description)
+    category = request.form.get('category')
+    if category: category = escape(category)
+    cost = request.form.get('cost')
+    if cost: cost = escape(cost)
+    title = request.form.get('title')
+    if title: title = escape(title)
     try:
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
