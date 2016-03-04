@@ -115,12 +115,15 @@ def get_user():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True, allow_headers=['*'])
 @auth_req
 def get_postings():
-    id = request.args.get('id')
-    owner = request.args.get('owner')
-    category = request.args.get('category')
-    cost = request.args.get('cost')
-    max_cost = request.args.get('max_cost')
-    
+    try:
+        id = escape(request.args.get('id'))
+        owner = escape(request.args.get('owner')) or int(escape(request.args.get('owner')))
+        category = escape(request.args.get('category')) or int(escape(request.args.get('owner')))
+        cost = escape(request.args.get('cost')) or int(escape(request.args.get('cost')))
+        max_cost = escape(request.args.get('max_cost')) or int(escape(request.args.get('max_cost')))
+    except ValueError:
+        return '', 400
+
     per_page = request.args.get('per_page', default=20)
     try:
         per_page = int(per_page)
@@ -159,10 +162,21 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    description = request.form.get('description', None)
-    category = request.form.get('category', None)
-    cost = request.form.get('cost', None)
-    title = request.form.get('title', None)
+    description = escape(request.form.get('description'))
+    category = escape(request.form.get('category'))
+    cost = escape(request.form.get('cost'))
+    title = escape(request.form.get('title'))
+    try:
+        category = int(category)
+        if not db.session.query(exists().where(Categories.id == category)):
+            return '', 400
+    except ValueError:
+        return '', 400
+    #
+    try:
+        cost = float(cost)
+    except ValueError:
+        cost = 0.0
 
     # Some sanity checking
     if not all([category, cost, title]):
