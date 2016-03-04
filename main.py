@@ -1,7 +1,7 @@
 from os import environ
 from oauth2client import client, crypt
 from functools import wraps
-from flask import Flask, request, send_file, abort
+from flask import Flask, request, send_file, escape
 from flask import session, g
 from flask.json import jsonify
 from flask.ext.cors import cross_origin, CORS
