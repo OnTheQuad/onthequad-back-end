@@ -22,6 +22,7 @@ pyOpenSSL==0.15.1
 rsa==3.2
 simplejson==3.8.0
 six==1.10.0
+sphinxsearch==0.1
 SQLAlchemy==1.0.8
 uritemplate==0.6
 Werkzeug==0.10.4
