@@ -8,6 +8,8 @@ from flask.ext.cors import cross_origin, CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.sql import exists
+from sqlalchemy.dialects.postgresql import array
+from sqlalchemy import func
 from models import db, Categories, User, Postings
 from sphinxsearch import SphinxClient
 import logging
@@ -65,8 +67,29 @@ def search():
     ids = []
     for res in q['matches']:
         ids.append(res['id'])
-    # Now make the query
-    Postings.query.filter(Postings.id.in_(ids))
+    # First construct the subquery
+    s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
+    query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
+
+    per_page = request.args.get('per_page', default=20)
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 20
+    page = request.args.get('page', default=1)
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+
+    sort = request.args.get('sort', default='relevance')
+    if sort != 'relevance':
+        query = sort_query(query, sort)
+
+    page = query.paginate(page, per_page, error_out=False)
+
+    # Return the JSON
+    return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
 
 #### Helpers ####
 # The actual authorizer that does the work
