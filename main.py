@@ -33,6 +33,56 @@ db.init_app(app)
 with app.app_context():
     Session(app)
 
+#### Helpers ####
+# The actual authorizer that does the work
+def authorizer(token):
+    if not token: return False
+    try:
+        idinfo = client.verify_id_token(token, CLIENT_ID);
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            raise crypt.AppIdentityError("Wrong issuer.")
+        if idinfo['hd'] != 'uconn.edu':
+            raise crypt.AppIdentityError("Wrong hosted domain.")
+    except crypt.AppIdentityError:
+        return False
+
+    # Set some globals that might be useful for this context
+    g.user = {}
+    g.user['id'] = long(idinfo['sub'])
+
+    # Database
+    if not db.session.query(exists().where(User.id == long(idinfo['sub']))).scalar():
+        db.session.add(User(id=long(idinfo['sub']), name=idinfo['name'], email=idinfo['email']))
+        db.session.commit()
+    return True
+
+# Authorization Decorator (used when other Views are accessed)
+def auth_req(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if authorizer(session.get('id_token', None)):
+            return f(*args, **kwargs)
+        logging.getLogger('Main').info('Unauthorized access')
+        return '', 403
+    return wrapper
+
+# Takes a SQLAlchemy mapping and converts it to representational dictionary
+def to_dict(row):
+    res = dict()
+    for c in row.__table__.columns:
+        res[c.name] = getattr(row, c.name)
+    return res
+
+# Takes a query and a sorting option, returns the query sorted by that option
+def sort_query(q, sort):
+    s_dict = {
+        'newest':       Postings.timestamp.desc(),
+        'oldest':       Postings.timestamp.asc(),
+        'highest_cost': Postings.cost.desc(),
+        'lowest_cost':  Postings.cost.asc(),
+        }
+    return q.order_by(s_dict.get(sort, Postings.timestamp.asc()))
+
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
@@ -91,56 +141,6 @@ def search():
 
     # Return the JSON
     return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
-
-#### Helpers ####
-# The actual authorizer that does the work
-def authorizer(token):
-    if not token: return False
-    try:
-        idinfo = client.verify_id_token(token, CLIENT_ID);
-        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-            raise crypt.AppIdentityError("Wrong issuer.")
-        if idinfo['hd'] != 'uconn.edu':
-            raise crypt.AppIdentityError("Wrong hosted domain.")
-    except crypt.AppIdentityError:
-        return False
-
-    # Set some globals that might be useful for this context
-    g.user = {}
-    g.user['id'] = long(idinfo['sub'])
-
-    # Database
-    if not db.session.query(exists().where(User.id == long(idinfo['sub']))).scalar():
-        db.session.add(User(id=long(idinfo['sub']), name=idinfo['name'], email=idinfo['email']))
-        db.session.commit()
-    return True
-
-# Authorization Decorator (used when other Views are accessed)
-def auth_req(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if authorizer(session.get('id_token', None)):
-            return f(*args, **kwargs)
-        logging.getLogger('Main').info('Unauthorized access')
-        return '', 403
-    return wrapper
-
-# Takes a SQLAlchemy mapping and converts it to representational dictionary
-def to_dict(row):
-    res = dict()
-    for c in row.__table__.columns:
-        res[c.name] = getattr(row, c.name)
-    return res
-
-# Takes a query and a sorting option, returns the query sorted by that option
-def sort_query(q, sort):
-    s_dict = {
-        'newest':       Postings.timestamp.desc(),
-        'oldest':       Postings.timestamp.asc(),
-        'highest_cost': Postings.cost.desc(),
-        'lowest_cost':  Postings.cost.asc(),
-        }
-    return q.order_by(s_dict.get(sort, Postings.timestamp.asc()))
 
 #### API ####
 # User API:
