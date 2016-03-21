@@ -8,10 +8,15 @@ from flask.ext.cors import cross_origin, CORS
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.sql import exists
+from sqlalchemy.dialects.postgresql import array
+from sqlalchemy import func
 from models import db, Categories, User, Postings
+from sphinxsearch import SphinxClient
 import logging
 
 CLIENT_ID = environ['WEB_CLIENT_ID']
+SEARCH_HOST = environ['SEARCH_HOST']
+SEARCH_PORT = int(environ['SEARCH_PORT'])
 
 app = Flask(__name__)
 
@@ -49,7 +54,43 @@ def logout():
     session.modified = True
     return '', 200
 
-# TODO: Searching here
+# Searching View
+@app.route('/api/search/', strict_slashes=False)
+@cross_origin(origins=environ['CORS_URL'].split(','), supports_credentials=True)
+@auth_req
+def search():
+    keywords = request.args.get('keywords')
+    client = SphinxClient()
+    client.SetServer(SEARCH_HOST, SEARCH_PORT)
+    q = client.Query(keywords)
+    if not q:
+        return '', 200
+    ids = []
+    for res in q['matches']:
+        ids.append(res['id'])
+    # First construct the subquery
+    s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
+    query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
+
+    per_page = request.args.get('per_page', default=20)
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 20
+    page = request.args.get('page', default=1)
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+
+    sort = request.args.get('sort', default='relevance')
+    if sort != 'relevance':
+        query = sort_query(query, sort)
+
+    page = query.paginate(page, per_page, error_out=False)
+
+    # Return the JSON
+    return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
 
 #### Helpers ####
 # The actual authorizer that does the work
@@ -90,6 +131,16 @@ def to_dict(row):
     for c in row.__table__.columns:
         res[c.name] = getattr(row, c.name)
     return res
+
+# Takes a query and a sorting option, returns the query sorted by that option
+def sort_query(q, sort):
+    s_dict = {
+        'newest':       Postings.timestamp.desc(),
+        'oldest':       Postings.timestamp.asc(),
+        'highest_cost': Postings.cost.desc(),
+        'lowest_cost':  Postings.cost.asc(),
+        }
+    return q.order_by(s_dict.get(sort, Postings.timestamp.asc()))
 
 #### API ####
 # User API:
@@ -139,7 +190,7 @@ def get_postings():
         page = int(page)
     except ValueError:
         page = 1
-    sort = request.args.get('sort', default='newest')
+
 
     # Query
     query = Postings.query
@@ -149,14 +200,9 @@ def get_postings():
     if cost: query = query.filter(Postings.cost == cost)
     if max_cost: query = query.filter(Postings.cost <= max_cost)
 
-    if sort == 'newest':
-        query = query.order_by(Postings.timestamp.desc())
-    elif sort == 'oldest':
-        query = query.order_by(Postings.timestamp.asc())
-    elif sort == 'highest_cost':
-        query = query.order_by(Postings.cost.desc())
-    elif sort == 'lowest_cost':
-        query = query.order_by(Postings.cost.asc())
+    # Sorting
+    sort = request.args.get('sort', default='newest')
+    query = sort_query(query, sort)
 
     page = query.paginate(page, per_page, error_out=False)
 
@@ -181,7 +227,7 @@ def post_postings():
             return '', 400
     except ValueError:
         return '', 400
-    #
+    # If we don't have a numeric cost, make it free
     try:
         cost = float(cost)
     except ValueError:
