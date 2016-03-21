@@ -57,6 +57,7 @@ def logout():
 # Searching View
 @app.route('/api/search/', strict_slashes=False)
 @cross_origin(origins=environ['CORS_URL'].split(','), supports_credentials=True)
+@auth_req
 def search():
     keywords = request.args.get('keywords')
     client = SphinxClient()
