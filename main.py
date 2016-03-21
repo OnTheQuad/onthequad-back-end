@@ -221,7 +221,6 @@ def post_postings():
     if cost: cost = escape(cost)
     title = request.form.get('title')
     if title: title = escape(title)
-    # Is this category valid?
     try:
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
