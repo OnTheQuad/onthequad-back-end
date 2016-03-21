@@ -9,9 +9,12 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.session import Session
 from sqlalchemy.sql import exists
 from models import db, Categories, User, Postings
+from sphinxsearch import SphinxClient
 import logging
 
 CLIENT_ID = environ['WEB_CLIENT_ID']
+SEARCH_HOST = environ['SEARCH_HOST']
+SEARCH_PORT = int(environ['SEARCH_PORT'])
 
 app = Flask(__name__)
 
@@ -49,7 +52,21 @@ def logout():
     session.modified = True
     return '', 200
 
-# TODO: Searching here
+# Searching View
+@app.route('/api/search/', strict_slashes=False)
+@cross_origin(origins=environ['CORS_URL'].split(','), supports_credentials=True)
+def search():
+    keywords = request.args.get('keywords')
+    client = SphinxClient()
+    client.SetServer(SEARCH_HOST, SEARCH_PORT)
+    q = client.Query(keywords)
+    if not q:
+        return '', 200
+    ids = []
+    for res in q['matches']:
+        ids.append(res['id'])
+    # Now make the query
+    Postings.query.filter(Postings.id.in_(ids))
 
 #### Helpers ####
 # The actual authorizer that does the work
@@ -90,6 +107,16 @@ def to_dict(row):
     for c in row.__table__.columns:
         res[c.name] = getattr(row, c.name)
     return res
+
+# Takes a query and a sorting option, returns the query sorted by that option
+def sort_query(q, sort):
+    s_dict = {
+        'newest':       Postings.timestamp.desc(),
+        'oldest':       Postings.timestamp.asc(),
+        'highest_cost': Postings.cost.desc(),
+        'lowest_cost':  Postings.cost.asc(),
+        }
+    return q.order_by(s_dict.get(sort, Postings.timestamp.asc()))
 
 #### API ####
 # User API:
@@ -134,7 +161,7 @@ def get_postings():
         page = int(page)
     except ValueError:
         page = 1
-    sort = request.args.get('sort', default='newest')
+
 
     # Query
     query = Postings.query
@@ -144,14 +171,9 @@ def get_postings():
     if cost: query = query.filter(Postings.cost == cost)
     if max_cost: query = query.filter(Postings.cost <= max_cost)
 
-    if sort == 'newest':
-        query = query.order_by(Postings.timestamp.desc())
-    elif sort == 'oldest':
-        query = query.order_by(Postings.timestamp.asc())
-    elif sort == 'highest_cost':
-        query = query.order_by(Postings.cost.desc())
-    elif sort == 'lowest_cost':
-        query = query.order_by(Postings.cost.asc())
+    # Sorting
+    sort = request.args.get('sort', default='newest')
+    query = sort_query(query, sort)
 
     page = query.paginate(page, per_page, error_out=False)
 
@@ -162,17 +184,29 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
+<<<<<<< Updated upstream
     description = escape(request.form.get('description'))
     category = escape(request.form.get('category'))
     cost = escape(request.form.get('cost'))
     title = escape(request.form.get('title'))
+=======
+    description = request.form.get('description')
+    if description: description = escape(description)
+    category = request.form.get('category')
+    if category: category = escape(category)
+    cost = request.form.get('cost')
+    if cost: cost = escape(cost)
+    title = request.form.get('title')
+    if title: title = escape(title)
+    # Is this category valid?
+>>>>>>> Stashed changes
     try:
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
             return '', 400
     except ValueError:
         return '', 400
-    #
+    # If we don't have a numeric cost, make it free
     try:
         cost = float(cost)
     except ValueError:
