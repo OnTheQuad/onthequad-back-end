@@ -1,7 +1,7 @@
 from os import environ
 from oauth2client import client, crypt
 from functools import wraps
-from flask import Flask, request, send_file, abort
+from flask import Flask, request, send_file, escape
 from flask import session, g
 from flask.json import jsonify
 from flask.ext.cors import cross_origin, CORS
@@ -143,11 +143,16 @@ def get_user():
 @auth_req
 def get_postings():
     try:
-        id = escape(request.args.get('id'))
-        owner = escape(request.args.get('owner')) or int(escape(request.args.get('owner')))
-        category = escape(request.args.get('category')) or int(escape(request.args.get('owner')))
-        cost = escape(request.args.get('cost')) or int(escape(request.args.get('cost')))
-        max_cost = escape(request.args.get('max_cost')) or int(escape(request.args.get('max_cost')))
+        id = request.args.get('id')
+        if id: id = int(escape(id))
+        owner = request.args.get('owner')
+        if owner: owner = int(escape(owner))
+        category = request.args.get('category')
+        if category: category = int(escape(category))
+        cost = request.args.get('cost')
+        if cost: cost = float(escape(cost))
+        max_cost = request.args.get('max_cost')
+        if max_cost: max_cost = float(escape(max_cost))
     except ValueError:
         return '', 400
 
@@ -184,12 +189,6 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-<<<<<<< Updated upstream
-    description = escape(request.form.get('description'))
-    category = escape(request.form.get('category'))
-    cost = escape(request.form.get('cost'))
-    title = escape(request.form.get('title'))
-=======
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
@@ -199,7 +198,6 @@ def post_postings():
     title = request.form.get('title')
     if title: title = escape(title)
     # Is this category valid?
->>>>>>> Stashed changes
     try:
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
