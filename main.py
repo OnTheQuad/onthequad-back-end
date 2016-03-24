@@ -272,6 +272,52 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
+
+@app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+@auth_req
+def put_postings():
+    id = request.form.get('id')
+    # Some error handling
+    if not id:
+        return '', 400
+    id = escape(id)
+
+    description = request.form.get('description')
+    if description: description = escape(description)
+    category = request.form.get('category')
+    if category: category = escape(category)
+    cost = request.form.get('cost')
+    if cost: cost = escape(cost)
+    title = request.form.get('title')
+    if title: title = escape(title)
+    try:
+        category = int(category)
+        if not db.session.query(exists().where(Categories.id == category)):
+            return '', 400
+    except ValueError:
+        return '', 400
+    # If we don't have a numeric cost, make it free
+    try:
+        cost = float(cost)
+    except ValueError:
+        cost = 0.0
+
+    # Else continue
+    post = Postings.query(Postings.id==id & Postings.owner==g.user['id']).first()
+
+    # Some sanity checking
+    if not all([post, category, cost, title]):
+        return '', 400
+
+    post.description = description
+    post.category = category
+    post.cost = cost
+    post.title = title
+
+    db.session.commit()
+
+
 if environ['DEBUG'] == 'True':
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('flask_cors').level = logging.DEBUG
