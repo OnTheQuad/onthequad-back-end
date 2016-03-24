@@ -317,10 +317,7 @@ def put_postings():
 
     db.session.commit()
 
-
-if environ['DEBUG'] == 'True':
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger('flask_cors').level = logging.DEBUG
+    return '', 200
 
 if __name__ == '__main__':
     app.run()
