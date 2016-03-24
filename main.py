@@ -316,16 +316,16 @@ def put_postings():
     q.filter(Postings.owner==g.user['id'])
     post = q.first()
 
-    # # Some sanity checking
-    # if not post:
-    #     return '', 400
+    # Some sanity checking
+    if not post:
+        return '', 400
 
-    # if description: post.description = description
-    # if category: post.category = category
-    # if cost: post.cost = cost
-    # if title: post.title = title
+    if description: post.description = description
+    if category: post.category = category
+    if cost: post.cost = cost
+    if title: post.title = title
 
-    # db.session.commit()
+    db.session.commit()
 
     return str(id), 200
 
