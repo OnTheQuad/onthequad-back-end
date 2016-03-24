@@ -310,10 +310,10 @@ def put_postings():
     if not all([post, category, cost, title]):
         return '', 400
 
-    post.description = description
-    post.category = category
-    post.cost = cost
-    post.title = title
+    if description: post.description = description
+    if category: post.category = category
+    if cost: post.cost = cost
+    if title: post.title = title
 
     db.session.commit()
 
