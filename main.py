@@ -235,7 +235,7 @@ def post_postings():
     try:
         cost = float(cost)
     except (ValueError, TypeError):
-        cost = 0.0
+        return 'invalid price', 400
 
     # Some sanity checking
     if not all([category, cost, title]):
@@ -311,7 +311,7 @@ def put_postings():
             cost = 0.0
 
     # Else continue
-    q = Postings.query
+    q = db.session.query(Postings)
     q.filter(Postings.id==id)
     q.filter(Postings.owner==g.user['id'])
     post = q.first()
