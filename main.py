@@ -225,12 +225,12 @@ def post_postings():
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
             return '', 400
-    except ValueError:
+    except (ValueError, TypeError):
         return '', 400
     # If we don't have a numeric cost, make it free
     try:
         cost = float(cost)
-    except ValueError:
+    except (ValueError, TypeError):
         cost = 0.0
 
     # Some sanity checking
@@ -291,17 +291,19 @@ def put_postings():
     if cost: cost = escape(cost)
     title = request.form.get('title')
     if title: title = escape(title)
-    try:
-        category = int(category)
-        if not db.session.query(exists().where(Categories.id == category)):
+    if category:
+        try:
+            category = int(category)
+            if not db.session.query(exists().where(Categories.id == category)):
+                return '', 400
+        except (ValueError, TypeError):
             return '', 400
-    except ValueError:
-        return '', 400
     # If we don't have a numeric cost, make it free
-    try:
-        cost = float(cost)
-    except ValueError:
-        cost = 0.0
+    if cost:
+        try:
+            cost = float(cost)
+        except (ValueError, TypeError):
+            cost = 0.0
 
     # Else continue
     post = Postings.query(Postings.id==id & Postings.owner==g.user['id']).first()
