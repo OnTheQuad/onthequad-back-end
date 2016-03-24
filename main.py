@@ -287,6 +287,8 @@ def put_postings():
         return '', 400
     id = escape(id)
 
+    print id
+
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
@@ -315,6 +317,8 @@ def put_postings():
     q.filter(Postings.id==id)
     q.filter(Postings.owner==g.user['id'])
     post = q.first()
+
+    print post
 
     # Some sanity checking
     if not post:
