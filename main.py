@@ -118,6 +118,10 @@ def search():
     ids = []
     for res in q['matches']:
         ids.append(res['id'])
+
+    if not ids:
+        return jsonify(data=[], num_pages=0), 200
+
     # First construct the subquery
     s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
     query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
@@ -306,7 +310,10 @@ def put_postings():
             cost = 0.0
 
     # Else continue
-    post = Postings.query.filter(Postings.id==id & Postings.owner==g.user['id']).first()
+    q = Postings.query
+    q.filter(Postings.id==id)
+    q.filter(Postings.owner==g.user['id'])
+    post = q.first()
 
     # Some sanity checking
     if not all([post, category, cost, title]):
