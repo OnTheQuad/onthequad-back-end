@@ -295,6 +295,7 @@ def put_postings():
     if cost: cost = escape(cost)
     title = request.form.get('title')
     if title: title = escape(title)
+
     if category:
         try:
             category = int(category)
@@ -316,7 +317,7 @@ def put_postings():
     post = q.first()
 
     # Some sanity checking
-    if not all([post, category, cost, title]):
+    if not post:
         return '', 400
 
     if description: post.description = description
