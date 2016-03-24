@@ -306,7 +306,7 @@ def put_postings():
             cost = 0.0
 
     # Else continue
-    post = Postings.query(Postings.id==id & Postings.owner==g.user['id']).first()
+    post = Postings.query.filter(Postings.id==id & Postings.owner==g.user['id']).first()
 
     # Some sanity checking
     if not all([post, category, cost, title]):
