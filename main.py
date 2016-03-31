@@ -134,6 +134,7 @@ def search():
         client.SetFilter('category', [category])
 
     # Paging
+    per_page = request.args.get('per_page', default=20)
     try:
         per_page = int(per_page)
     except ValueError:
