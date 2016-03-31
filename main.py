@@ -12,7 +12,7 @@ from sqlalchemy.sql import exists
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy import func
 from models import db, Categories, User, Postings
-from sphinxsearch import SphinxClient
+from sphinxsearch import SphinxClient, SPH_SORT_ATTR_DESC, SPH_SORT_ATTR_ASC
 import logging
 
 CLIENT_ID = environ['WEB_CLIENT_ID']
@@ -114,6 +114,7 @@ def search():
     sort = request.args.get('sort')
     client = SphinxClient()
     client.SetServer(SEARCH_HOST, SEARCH_PORT)
+
     # Sorting mode
     if sort == 'newest':
         client.SetSortMode(SPH_SORT_ATTR_DESC, 'date_added')
