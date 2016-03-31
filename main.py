@@ -164,7 +164,7 @@ def search():
     query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
 
     # Return the JSON
-    return jsonify(data=[to_dict(r) for r in query.all()], num_pages=((q['total']/per_page])+1)), 200
+    return jsonify(data=[to_dict(r) for r in query.all()], num_pages=((q['total']/per_page)+1)), 200
 
 #### API ####
 # User API:
