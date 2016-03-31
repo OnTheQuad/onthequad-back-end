@@ -67,6 +67,25 @@ def auth_req(f):
         return '', 403
     return wrapper
 
+# Takes a string and tries to return the corresponding integer
+# Else, it returns the default
+def to_int(s, default=None):
+    try:
+        return int(s)
+    except:
+        return default
+
+# Same as above, however also ignores NaN and inf
+# We don't need or want these for this application
+def to_float(s, default=None):
+    try:
+        f = float(s)
+        if isnan(f) or isinf(f):
+            return default
+        return f
+    except:
+        return default
+
 # Takes a SQLAlchemy mapping and converts it to representational dictionary
 def to_dict(row):
     res = dict()
@@ -126,25 +145,14 @@ def search():
         client.SetSortMode(SPH_SORT_ATTR_ASC, 'cost')
     
     # Filter by category
-    category = request.args.get('category')
-    try:
-        category = int(category)
-    except (ValueError, TypeError):
-        category = None
+    category = to_int(request.args.get('category'))
     if category:
         client.SetFilter('category', [category])
 
     # Paging
-    per_page = request.args.get('per_page', default=20)
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 20
-    page = request.args.get('page', default=1)
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
+    per_page = to_int(request.args.get('per_page', default=20))
+    page = to_int(request.args.get('page', default=1))
+    if page < 1: page = 1
 
     # Use our SphinxSearch query to construct our page
     client.SetLimits(per_page*(page-1), per_page)
@@ -153,10 +161,16 @@ def search():
     q = client.Query(keywords)
     if not q:
         return 'Could not complete search', 400
+    # Handle failing to find results
+    if not q['matches']:
+        return jsonify(data=[], num_pages=0), 200
+    
+    # Otherwise generate a list of ids
     ids = []
     for res in q['matches']:
         ids.append(res['id'])
 
+    # If there are no matches
     if not ids:
         return jsonify(data=[], num_pages=0), 200
 
@@ -169,7 +183,7 @@ def search():
 
 #### API ####
 # User API:
-@app.route('/api/user/', methods=['GET'], strict_slashes=False)
+#@app.route('/api/user/', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def get_user():
