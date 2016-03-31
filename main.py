@@ -1,4 +1,5 @@
 from os import environ
+from math import isinf, isnan
 from oauth2client import client, crypt
 from functools import wraps
 from flask import Flask, request, send_file, escape
@@ -110,19 +111,29 @@ def logout():
 @auth_req
 def search():
     keywords = request.args.get('keywords')
+    sort = request.args.get('sort')
     client = SphinxClient()
     client.SetServer(SEARCH_HOST, SEARCH_PORT)
-    q = client.Query(keywords)
-    if not q:
-        return '', 200
-    ids = []
-    for res in q['matches']:
-        ids.append(res['id'])
-    # First construct the subquery
-    s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
-    query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
+    # Sorting mode
+    if sort == 'newest':
+        client.SetSortMode(SPH_SORT_ATTR_DESC, 'date_added')
+    elif sort == 'oldest':
+        client.SetSortMode(SPH_SORT_ATTR_ASC, 'date_added')
+    elif sort == 'highest_cost':
+        client.SetSortMode(SPH_SORT_ATTR_DESC, 'cost')
+    elif sort == 'lowest_cost':
+        client.SetSortMode(SPH_SORT_ATTR_ASC, 'cost')
+    
+    # Filter by category
+    category = request.args.get('category')
+    try:
+        category = int(category)
+    except (ValueError, TypeError):
+        category = None
+    if category:
+        client.SetFilter('category', [category])
 
-    per_page = request.args.get('per_page', default=20)
+    # Paging
     try:
         per_page = int(per_page)
     except ValueError:
@@ -133,11 +144,23 @@ def search():
     except ValueError:
         page = 1
 
-    sort = request.args.get('sort', default='relevance')
-    if sort != 'relevance':
-        query = sort_query(query, sort)
+    # Use our SphinxSearch query to construct our page
+    client.SetLimits(per_page*(page-1), per_page)
 
-    page = query.paginate(page, per_page, error_out=False)
+    # Handle the query
+    q = client.Query(keywords)
+    if not q:
+        return 'Could not complete search', 400
+    ids = []
+    for res in q['matches']:
+        ids.append(res['id'])
+
+    if not ids:
+        return jsonify(data=[], num_pages=0), 200
+
+    # First construct the subquery
+    s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
+    query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
 
     # Return the JSON
     return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
@@ -220,22 +243,27 @@ def post_postings():
     cost = request.form.get('cost')
     if cost: cost = escape(cost)
     title = request.form.get('title')
-    if title: title = escape(title)
+    if title:
+        title = escape(title)
+    else:
+        return 'No title given', 400
+
+    # Error checking and conversion
     try:
         category = int(category)
         if not db.session.query(exists().where(Categories.id == category)):
             return '', 400
-    except ValueError:
+    except (ValueError, TypeError):
         return '', 400
-    # If we don't have a numeric cost, make it free
     try:
         cost = float(cost)
-    except ValueError:
-        cost = 0.0
+    except (ValueError, TypeError):
+        return 'No cost given', 400
 
-    # Some sanity checking
-    if not all([category, cost, title]):
-        return '', 400
+
+    # Check othr valid floats
+    if isnan(category) or isnan(cost) or isinf(category) or isinf(cost):
+        return 'Invalid cost or category', 400
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
@@ -272,9 +300,65 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
-if environ['DEBUG'] == 'True':
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger('flask_cors').level = logging.DEBUG
+
+@app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+@auth_req
+def put_postings():
+    id = request.form.get('id')
+    # Some error handling
+    if not id:
+        return '', 400
+    id = escape(id)
+
+    description = request.form.get('description')
+    if description: description = escape(description)
+    category = request.form.get('category')
+    if category: category = escape(category)
+    cost = request.form.get('cost')
+    if cost: cost = escape(cost)
+    title = request.form.get('title')
+    if title:
+        title = escape(title)
+    else:
+        return 'No title given', 400
+
+    # Convert types and check errors
+    if category:
+        try:
+            category = int(category)
+            if not db.session.query(exists().where(Categories.id == category)):
+                return '', 400
+        except (ValueError, TypeError):
+            return '', 400
+    if cost:
+        try:
+            cost = float(cost)
+        except (ValueError, TypeError):
+            return 'No cost given', 400
+
+    # Check othr valid floats
+    if isnan(category) or isnan(cost) or isinf(category) or isinf(cost):
+        return 'Invalid cost or category', 400
+
+    # Else continue
+    q = db.session.query(Postings)
+    q.filter(Postings.id==id)
+    q.filter(Postings.owner==g.user['id'])
+    post = q.first()
+
+    # Some sanity checking
+    if not post:
+        return '', 400
+
+    if description: post.description = description
+    if category: post.category = category
+    if cost: post.cost = cost
+    if title: post.title = title
+
+    db.session.commit()
+
+    return '', 200
 
 if __name__ == '__main__':
     app.run()
