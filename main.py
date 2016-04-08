@@ -34,7 +34,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-app.config['UPLOAD_FOLDER'] = '/temp'
+app.config['UPLOAD_FOLDER'] = '/temp/'
 db.init_app(app)
 
 with app.app_context():
