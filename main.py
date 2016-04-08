@@ -15,6 +15,13 @@ from models import db, Categories, User, Postings
 from sphinxsearch import SphinxClient
 import logging
 
+import os
+from flask import Flask, request, redirect, url_for
+from werkzeug import secure_filename
+
+UPLOAD_FOLDER = '/img/'
+ALLOWED_EXTENSIONS = set(['jpg'])
+
 CLIENT_ID = environ['WEB_CLIENT_ID']
 SEARCH_HOST = environ['SEARCH_HOST']
 SEARCH_PORT = int(environ['SEARCH_PORT'])
@@ -28,13 +35,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-
+app.config['UPLOAD_FOLER'] = UPLOAD_FOLDER
 db.init_app(app)
 
 with app.app_context():
     Session(app)
 
 #### Helpers ####
+
+# Image upload allowed
+def allowed_file(filename):
+   return '.' in filename and \
+      filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
 # The actual authorizer that does the work
 def authorizer(token):
     if not token: return False
@@ -236,6 +249,10 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
