@@ -19,8 +19,7 @@ import os
 from flask import Flask, request, redirect, url_for
 from werkzeug import secure_filename
 
-UPLOAD_FOLDER = '/img/'
-ALLOWED_EXTENSIONS = set(['jpg'])
+ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 
 CLIENT_ID = environ['WEB_CLIENT_ID']
 SEARCH_HOST = environ['SEARCH_HOST']
@@ -35,7 +34,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-app.config['UPLOAD_FOLER'] = UPLOAD_FOLDER
+app.config['UPLOAD_FOLDER'] = '/temp/'
 db.init_app(app)
 
 with app.app_context():
@@ -249,10 +248,10 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    file = request.files['file']
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    f = request.files['image']
+    if f and allowed_file(f.filename):
+        filename = secure_filename(f.filename)
+        f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
