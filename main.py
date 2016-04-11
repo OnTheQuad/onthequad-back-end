@@ -24,6 +24,7 @@ ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 CLIENT_ID = environ['WEB_CLIENT_ID']
 SEARCH_HOST = environ['SEARCH_HOST']
 SEARCH_PORT = int(environ['SEARCH_PORT'])
+numfiles = len(next(os.walk(UPLOAD_FOLDER))[2])
 
 app = Flask(__name__)
 
