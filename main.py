@@ -12,7 +12,7 @@ from sqlalchemy.sql import exists
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy import func
 from models import db, Categories, User, Postings
-from sphinxsearch import SphinxClient, SPH_SORT_ATTR_DESC, SPH_SORT_ATTR_ASC
+from sphinxsearch import SphinxClient, SPH_SORT_ATTR_DESC, SPH_SORT_ATTR_ASC, SPH_MATCH_EXTENDED2
 import logging
 
 import os
@@ -99,47 +99,14 @@ def to_float(s, default=None):
         return default
 
 # Takes a SQLAlchemy mapping and converts it to representational dictionary
-def to_dict(row):
-    res = dict()
+def to_dict(row, email):
+    res = {'email':email}
     for c in row.__table__.columns:
         res[c.name] = getattr(row, c.name)
     return res
 
-# Takes a query and a sorting option, returns the query sorted by that option
-def sort_query(q, sort):
-    s_dict = {
-        'newest':       Postings.timestamp.desc(),
-        'oldest':       Postings.timestamp.asc(),
-        'highest_cost': Postings.cost.desc(),
-        'lowest_cost':  Postings.cost.asc(),
-        }
-    return q.order_by(s_dict.get(sort, Postings.timestamp.asc()))
-
-#### Middleware ####
-# Authorization View (only used for login)
-@app.route('/api/auth/', methods=['POST'], strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-def auth():
-    token = request.form.get('id_token')
-    if authorizer(token):
-        # Add id_token as a server side session cookie
-        session['id_token'] = token
-        return '', 200
-    return '', 403
-
-# Logout View
-@app.route('/api/logout/', strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-def logout():
-    # Delete the session from the database
-    session.clear()
-    session.modified = True
-    return '', 200
-
-# Searching View
-@app.route('/api/search/', strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-@auth_req
+# Searching helper
+# Workflow for search calls to get_postings
 def search():
     keywords = request.args.get('keywords')
     sort = request.args.get('sort')
@@ -169,8 +136,18 @@ def search():
     # Use our SphinxSearch query to construct our page
     client.SetLimits(per_page*(page-1), per_page)
 
+    # Set search mode to extended2
+    client.SetMatchMode(SPH_MATCH_EXTENDED2)
+
+    # Construct the query
+    search_q = ['@!owner', keywords, '@*', keywords]
+    owner = request.args.get('owner')
+    if owner:
+        search_q.append('@owner')
+        search_q.append(owner)
+
     # Handle the query
-    q = client.Query(keywords)
+    q = client.Query(' '.join(search_q))
     if not q:
         return 'Could not complete search', 400
     # Handle failing to find results
@@ -188,48 +165,28 @@ def search():
 
     # First construct the subquery
     s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
+
+    # Then create the query
     query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
+    query = query.join(User, User.id == Postings.owner).add_columns(User.email)
 
     # Return the JSON
-    return jsonify(data=[to_dict(r) for r in query.all()], num_pages=((q['total']/per_page)+1)), 200
+    return jsonify(data=[to_dict(r, email) for r, email in query.all()], num_pages=((q['total']/per_page)+1)), 200
 
-#### API ####
-# User API:
-#@app.route('/api/user/', methods=['GET'], strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-@auth_req
-def get_user():
+
+# Browse helper
+# Separate workflow for non-search get_postings
+def browse():
     id = request.args.get('id')
-    email = request.args.get('email')
-    name = request.args.get('name')
-
-    # Query
-    query = User.query
-    if id: query = query.filter(User.id == id)
-    if email: query = query.filter(User.email == email)
-    if name: query = query.filter(User.name == name)
-
-    # Return the JSON
-    return jsonify(data=[to_dict(r) for r in query.all()])
-
-# Postings API:
-@app.route('/api/postings/', methods=['GET'], strict_slashes=False)
-@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True, allow_headers=['*'])
-@auth_req
-def get_postings():
-    try:
-        id = request.args.get('id')
-        if id: id = int(escape(id))
-        owner = request.args.get('owner')
-        if owner: owner = int(escape(owner))
-        category = request.args.get('category')
-        if category: category = int(escape(category))
-        cost = request.args.get('cost')
-        if cost: cost = float(escape(cost))
-        max_cost = request.args.get('max_cost')
-        if max_cost: max_cost = float(escape(max_cost))
-    except ValueError:
-        return '', 400
+    if id: id = to_int(escape(id))
+    owner = request.args.get('owner')
+    if owner: owner = to_int(escape(owner))
+    category = request.args.get('category')
+    if category: category = to_int(escape(category))
+    cost = request.args.get('cost')
+    if cost: cost = to_float(escape(cost))
+    max_cost = request.args.get('max_cost')
+    if max_cost: max_cost = to_float(escape(max_cost))
 
     per_page = request.args.get('per_page', default=20)
     try:
@@ -242,7 +199,6 @@ def get_postings():
     except ValueError:
         page = 1
 
-
     # Query
     query = Postings.query
     if id: query = query.filter(Postings.id == id)
@@ -251,15 +207,59 @@ def get_postings():
     if cost: query = query.filter(Postings.cost == cost)
     if max_cost: query = query.filter(Postings.cost <= max_cost)
 
+    query = query.join(User, User.id == Postings.owner).add_columns(User.email)
+
     # Sorting
     sort = request.args.get('sort', default='newest')
-    query = sort_query(query, sort)
+    s_dict = {
+        'newest':       Postings.timestamp.desc(),
+        'oldest':       Postings.timestamp.asc(),
+        'highest_cost': Postings.cost.desc(),
+        'lowest_cost':  Postings.cost.asc(),
+        }
 
+    query = query.order_by(s_dict.get(sort, Postings.timestamp.asc()))
+
+    # Paginate
     page = query.paginate(page, per_page, error_out=False)
 
     # Return the JSON
-    return jsonify(data=[to_dict(r) for r in page.items], num_pages=page.pages), 200
+    return jsonify(data=[to_dict(r, email) for r,email in page.items], num_pages=page.pages), 200
 
+#### Middleware ####
+# Authorization View (only used for login)
+@app.route('/api/auth/', methods=['POST'], strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+def auth():
+    token = request.form.get('id_token')
+    if authorizer(token):
+        # Add id_token as a server side session cookie
+        session['id_token'] = token
+        return '', 200
+    return '', 403
+
+# Logout View
+@app.route('/api/logout/', strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+def logout():
+    # Delete the session from the database
+    session.clear()
+    session.modified = True
+    return '', 200
+
+#### API ####
+# Postings API:
+# Get a posting
+@app.route('/api/postings/', methods=['GET'], strict_slashes=False)
+@cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
+@auth_req
+def get_postings():
+    if request.args.get('keywords'):
+        return search()
+    else:
+        return browse()
+
+# Add a new posting
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
@@ -282,11 +282,11 @@ def post_postings():
 
     # Error checking and conversion
     try:
-        category = int(category)
+        category = float(category)
         if not db.session.query(exists().where(Categories.id == category)):
-            return '', 400
+            return 'Bad category', 400
     except (ValueError, TypeError):
-        return '', 400
+        return 'Bad category', 400
     try:
         cost = float(cost)
     except (ValueError, TypeError):
@@ -299,7 +299,7 @@ def post_postings():
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
-        category=category, title=title)
+        category=int(category), title=title)
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks
@@ -311,6 +311,7 @@ def post_postings():
 
     return '',  200
 
+# Deleting a posting
 @app.route('/api/postings/', methods=['DELETE'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
@@ -332,7 +333,7 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
-
+# Updating a posting
 @app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
@@ -340,53 +341,45 @@ def put_postings():
     id = request.form.get('id')
     # Some error handling
     if not id:
-        return '', 400
+        return 'Bad ID', 400
     id = escape(id)
 
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
-    if category: category = escape(category)
-    cost = request.form.get('cost')
-    if cost: cost = escape(cost)
-    title = request.form.get('title')
-    if title:
-        title = escape(title)
-    else:
-        return 'No title given', 400
-
-    # Convert types and check errors
     if category:
-        try:
-            category = int(category)
-            if not db.session.query(exists().where(Categories.id == category)):
-                return '', 400
-        except (ValueError, TypeError):
-            return '', 400
+        category = escape(category)
+        if not db.session.query(exists().where(Categories.id == category)):
+            return 'Bad category', 400
+    cost = request.form.get('cost')
     if cost:
+        cost = escape(cost)
         try:
             cost = float(cost)
+            if any([isnan(cost), isinf(cost)]):
+                return 'Bad cost', 400
         except (ValueError, TypeError):
-            return 'No cost given', 400
-
-    # Check othr valid floats
-    if isnan(category) or isnan(cost) or isinf(category) or isinf(cost):
-        return 'Invalid cost or category', 400
+            return 'Bad cost', 400
+    title = request.form.get('title')
+    if title: title = escape(title)
 
     # Else continue
     q = db.session.query(Postings)
-    q.filter(Postings.id==id)
-    q.filter(Postings.owner==g.user['id'])
+    q = q.filter(Postings.id==id)
+    q = q.filter(Postings.owner==g.user['id'])
     post = q.first()
 
     # Some sanity checking
     if not post:
-        return '', 400
+        return 'No post with that given ID', 400
 
     if description: post.description = description
     if category: post.category = category
     if cost: post.cost = cost
     if title: post.title = title
+
+    # Update the timestamp
+    post.timestamp = func.now()
 
     db.session.commit()
 
