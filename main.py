@@ -34,7 +34,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-app.config['UPLOAD_FOLDER'] = '/temp/'
+app.config['UPLOAD_FOLDER'] = '/var/www/images/'
 db.init_app(app)
 
 with app.app_context():
@@ -264,10 +264,10 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    f = request.files['image']
-    if f and allowed_file(f.filename):
-        filename = secure_filename(f.filename)
-        f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    for f in request.files.getlist('images'):
+        if allowed_file(f.filename):
+            filename = secure_filename(f.filename)
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
