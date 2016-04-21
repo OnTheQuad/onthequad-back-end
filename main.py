@@ -15,8 +15,11 @@ from models import db, Categories, User, Postings
 from sphinxsearch import SphinxClient, SPH_SORT_ATTR_DESC, SPH_SORT_ATTR_ASC, SPH_MATCH_EXTENDED2
 import logging
 
+
 import os
-from flask import Flask, request, redirect, url_for
+import os.path
+import uuid
+from flask import Flask, request, redirect, url_for, send_from_directory
 from werkzeug import secure_filename
 
 ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
@@ -265,9 +268,25 @@ def get_postings():
 @auth_req
 def post_postings():
     f = request.files['image']
+    # Creates random string that will be the new image name
+    helpname = str(uuid.uuid4())'.jpg'
+    # First 4 characters is newfolder
+    newfolder = helpname[:4]
+    # Sets the new directory to be newfolder
+    newdir = '/home/yao/images/' + newfolder
+    app.config['UPLOAD_FOLDER'] = newdir
+    numfiles = len([f for f in os.listdir(app.config['UPLOAD_FOLDER'])
+                                          if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))])
+    # Check if file is one of allowed extensions   
     if f and allowed_file(f.filename):
-        filename = secure_filename(f.filename)
-        f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    # Securize filename, remove unsupported chars
+       filename = secure_filename(helpname)
+       if numfiles > 300:
+          os.makedirs(newdir)
+          app.config['UPLOAD_FOLDER'] = newdir
+          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+       else: 
+          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
@@ -333,7 +352,10 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
-# Updating a posting
+@app.route('api/uploads')
+def uploaded_file():
+    return send_from_directory(app.config['UPLOAD_FOLDER'], request.args.get('filename'))
+
 @app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
