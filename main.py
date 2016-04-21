@@ -264,7 +264,7 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    for f in request.files.getlist('images'):
+    for f in request.files.getlist('images[]'):
         if allowed_file(f.filename):
             filename = secure_filename(f.filename)
             f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
