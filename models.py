@@ -36,7 +36,7 @@ class Postings(db.Model):
 	category = Column(Integer, ForeignKey('categories.id'))
 	timestamp = Column(DateTime, default=func.now())
 	title = Column(String)
-	images = Column(ARRAY(String))
+	image = Column(ARRAY(String))
 
 	def __repr__(self):
 		return "<Postings(id='%s', owner='%s', description='%s', cost='%s', category='%s', timestamp='%s', title='%s')>" % (
