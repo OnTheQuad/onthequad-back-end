@@ -267,11 +267,13 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
+    file_ids = list()
     for f in request.files.getlist('images[]'):
         if allowed_file(f.filename):
             f_name, ext = os.path.splitext(f.filename) 
             while True:
                 new_name = secure_filename(str(uuid.uuid4()))
+                name = new_name + ext
                 dir = os.path.join('/var/www/images', new_name[:3])
                 if os.path.exists(new_name + ext):
                     pass
@@ -284,8 +286,8 @@ def post_postings():
                     break
 
             # Save each file
-            f.save(os.path.join(dir, new_name + ext))
-            file_ids.append(new_name)
+            f.save(os.path.join(dir, name))
+            file_ids.append(name)
 
     description = request.form.get('description')
     if description: description = escape(description)
@@ -318,7 +320,7 @@ def post_postings():
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
-        category=int(category), title=title)
+        category=int(category), title=title, images=file_ids)
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks

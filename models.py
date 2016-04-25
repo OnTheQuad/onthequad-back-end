@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import DateTime, Numeric, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 
 db = SQLAlchemy()
 
@@ -36,6 +36,7 @@ class Postings(db.Model):
 	category = Column(Integer, ForeignKey('categories.id'))
 	timestamp = Column(DateTime, default=func.now())
 	title = Column(String)
+	images = Column(ARRAY(String))
 
 	def __repr__(self):
 		return "<Postings(id='%s', owner='%s', description='%s', cost='%s', category='%s', timestamp='%s', title='%s')>" % (
