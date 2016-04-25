@@ -320,7 +320,7 @@ def post_postings():
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
-        category=int(category), title=title, images=file_ids)
+        category=int(category), title=title, image=file_ids)
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks
