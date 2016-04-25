@@ -269,24 +269,26 @@ def get_postings():
 def post_postings():
     f = request.files['image']
     # Creates random string that will be the new image name
-    helpname = str(uuid.uuid4())'.jpg'
-    # First 4 characters is newfolder
-    newfolder = helpname[:4]
+    helpname = str(uuid.uuid4()) + '.jpg'
+    # First 3 characters is newfolder
+    newfolder = helpname[:3]
     # Sets the new directory to be newfolder
-    newdir = '/home/yao/images/' + newfolder
+    newdir = '/var/www/images/' + newfolder
+    
     app.config['UPLOAD_FOLDER'] = newdir
-    numfiles = len([f for f in os.listdir(app.config['UPLOAD_FOLDER'])
-                                          if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))])
     # Check if file is one of allowed extensions   
     if f and allowed_file(f.filename):
     # Securize filename, remove unsupported chars
        filename = secure_filename(helpname)
-       if numfiles > 300:
-          os.makedirs(newdir)
-          app.config['UPLOAD_FOLDER'] = newdir
+       if os.path.isdir(newdir):
+	  if numfiles > 3: 
+ 	     print 'Derp'
+          # Handling
           file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-       else: 
-          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+       # Move file from temp folder to upload folder
+       else:
+          os.mkdir(newdir)
+          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename)
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
