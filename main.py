@@ -15,8 +15,11 @@ from models import db, Categories, User, Postings
 from sphinxsearch import SphinxClient, SPH_SORT_ATTR_DESC, SPH_SORT_ATTR_ASC, SPH_MATCH_EXTENDED2
 import logging
 
+
 import os
-from flask import Flask, request, redirect, url_for
+import os.path
+import uuid
+from flask import Flask, request, redirect, url_for, send_from_directory
 from werkzeug import secure_filename
 
 ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
@@ -266,8 +269,24 @@ def get_postings():
 def post_postings():
     for f in request.files.getlist('images[]'):
         if allowed_file(f.filename):
-            filename = secure_filename(f.filename)
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            f_name, ext = os.path.splitext(f.filename) 
+            while True:
+                new_name = secure_filename(str(uuid.uuid4()))
+                dir = os.path.join('/var/www/images', new_name[:3])
+                if os.path.exists(new_name + ext):
+                    pass
+                elif os.path.isdir(dir):
+                    if len(os.listidr(dir)) <= 300:
+                        break
+                # Make a new directory
+                else:
+                    os.mkdir(dir)
+                    break
+
+            # Save each file
+            f.save(os.path.join(dir, new_name + ext))
+            file_ids.append(new_name)
+
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
@@ -333,7 +352,6 @@ def delete_postings():
     db.session.commit()
     return '', 200
 
-# Updating a posting
 @app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
