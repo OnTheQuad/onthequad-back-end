@@ -37,7 +37,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-app.config['UPLOAD_FOLDER'] = '/temp/'
+app.config['UPLOAD_FOLDER'] = '/var/www/images/'
 db.init_app(app)
 
 with app.app_context():
@@ -267,26 +267,28 @@ def get_postings():
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    f = request.files['image']
-    # Creates random string that will be the new image name
-    helpname = str(uuid.uuid4())'.jpg'
-    # First 4 characters is newfolder
-    newfolder = helpname[:4]
-    # Sets the new directory to be newfolder
-    newdir = '/home/yao/images/' + newfolder
-    app.config['UPLOAD_FOLDER'] = newdir
-    numfiles = len([f for f in os.listdir(app.config['UPLOAD_FOLDER'])
-                                          if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))])
-    # Check if file is one of allowed extensions   
-    if f and allowed_file(f.filename):
-    # Securize filename, remove unsupported chars
-       filename = secure_filename(helpname)
-       if numfiles > 300:
-          os.makedirs(newdir)
-          app.config['UPLOAD_FOLDER'] = newdir
-          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-       else: 
-          file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    file_ids = list()
+    for f in request.files.getlist('images[]'):
+        if allowed_file(f.filename):
+            f_name, ext = os.path.splitext(f.filename) 
+            while True:
+                new_name = secure_filename(str(uuid.uuid4()))
+                name = new_name + ext
+                dir = os.path.join('/var/www/images', new_name[:3])
+                if os.path.exists(new_name + ext):
+                    pass
+                elif os.path.isdir(dir):
+                    if len(os.listidr(dir)) <= 300:
+                        break
+                # Make a new directory
+                else:
+                    os.mkdir(dir)
+                    break
+
+            # Save each file
+            f.save(os.path.join(dir, name))
+            file_ids.append(name)
+
     description = request.form.get('description')
     if description: description = escape(description)
     category = request.form.get('category')
@@ -318,7 +320,7 @@ def post_postings():
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
-        category=int(category), title=title)
+        category=int(category), title=title, images=file_ids)
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks
@@ -351,10 +353,6 @@ def delete_postings():
     db.session.delete(posting)
     db.session.commit()
     return '', 200
-
-@app.route('api/uploads')
-def uploaded_file():
-    return send_from_directory(app.config['UPLOAD_FOLDER'], request.args.get('filename'))
 
 @app.route('/api/postings/', methods=['PUT'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
