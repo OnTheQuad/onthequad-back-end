@@ -14,8 +14,8 @@ itsdangerous==0.24
 Jinja2==2.8
 MarkupSafe==0.23
 oauth2client==1.5.1
-python-resize-image=1.1.10
-Pillow=2.8.1
+python-resize-image==1.1.10
+Pillow==2.8.1
 psycopg2==2.6.1
 pyasn1==0.1.9
 pyasn1-modules==0.0.8
