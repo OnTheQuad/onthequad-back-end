@@ -270,10 +270,10 @@ def image_get(file):
     dir = '/var/www/images/' + str(file[:3])
     return send_from_directory(dir, file)
 
-# Serve a thumbnail
-@app.route('/api/thumbs/<file>')
-def thumb_get(file):
-    return send_from_directory('/var/www/images/testcrop.jpg', file)
+# Serve a thumbnail still in testing
+#@app.route('/api/thumbs/<file>')
+#def thumb_get(file):
+#    return send_from_directory('/var/www/images/testcrop.jpg', file)
 # Add a new posting
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
@@ -301,12 +301,12 @@ def post_postings():
             f.save(os.path.join(dir, name))
 
             # Create a thumbnail
-            thumb_image = open(os.path.join(dir, name))
-            thumb = Image.open(thumb_image)
-            thumb = resizeimage.resize_cover(thumb, [242,200])
+            #thumb_image = open(os.path.join(dir, name))
+            #thumb = Image.open(thumb_image)
+            #thumb = resizeimage.resize_cover(thumb, [242,200])
             # Location and name to save thumbnail
-            thumb.save('/var/www/images/testcrop.jpg')
-            thumb_image.close()
+            #thumb.save('/var/www/images/testcrop.jpg')
+            #thumb_image.close()
             file_ids.append(name)
 
     description = request.form.get('description')
