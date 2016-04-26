@@ -262,6 +262,12 @@ def get_postings():
     else:
         return browse()
 
+# Serve an image
+@app.route('/api/images/<file>')
+def image_get(file):
+    dir = '/var/www/images/' + str(file[:3])
+    return send_from_directory(dir, file)
+      
 # Add a new posting
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
