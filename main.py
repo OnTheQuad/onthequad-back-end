@@ -21,8 +21,8 @@ import os.path
 import uuid
 from flask import Flask, request, redirect, url_for, send_from_directory
 from werkzeug import secure_filename
-from PIL import Image
-from resizeimage import resizeimage
+#from PIL import Image
+#from resizeimage import resizeimage
 
 ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 
