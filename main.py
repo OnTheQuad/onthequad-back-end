@@ -45,7 +45,6 @@ with app.app_context():
     Session(app)
 
 #### Helpers ####
-
 # Image upload allowed
 def allowed_file(filename):
    return '.' in filename and \
@@ -231,6 +230,43 @@ def browse():
     # Return the JSON
     return jsonify(data=[to_dict(r, email) for r,email in page.items], num_pages=page.pages, total=query.count()), 200
 
+# Image function
+def images(im_list):
+    file_ids = list()
+    for f in im_list:
+        if allowed_file(f.filename):
+            f_name, ext = os.path.splitext(f.filename) 
+            while True:
+                new_name = secure_filename(str(uuid.uuid4()))
+                name = new_name + ext
+                dir = os.path.join(UPLOAD_FOLDER, new_name[:3])
+                if os.path.exists(new_name + ext):
+                    pass
+                elif os.path.isdir(dir):
+                    if len(os.listidr(dir)) <= 300:
+                        break
+                # Make a new directory
+                else:
+                    os.mkdir(dir)
+                    break
+
+            # Save each file
+            f.save(os.path.join(dir, name))
+
+            # Create a thumbnail
+            thumb = open(os.path.join(dir, name))
+            im = Image.open(thumb)
+            im.thumbnail((242,200), Image.ANTIALIAS)
+            # Create background
+            bg = Image.new('RGBA', (242,200))
+            loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
+            bg.paste(im, loc)
+            bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
+
+            # Append file name to file_ids
+            file_ids.append(name)
+        return file_ids
+
 #### Middleware ####
 # Authorization View (only used for login)
 @app.route('/api/auth/', methods=['POST'], strict_slashes=False)
@@ -275,39 +311,7 @@ def image_get(file):
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    file_ids = list()
-    for f in request.files.getlist('images[]'):
-        if allowed_file(f.filename):
-            f_name, ext = os.path.splitext(f.filename) 
-            while True:
-                new_name = secure_filename(str(uuid.uuid4()))
-                name = new_name + ext
-                dir = os.path.join(UPLOAD_FOLDER, new_name[:3])
-                if os.path.exists(new_name + ext):
-                    pass
-                elif os.path.isdir(dir):
-                    if len(os.listidr(dir)) <= 300:
-                        break
-                # Make a new directory
-                else:
-                    os.mkdir(dir)
-                    break
-
-            # Save each file
-            f.save(os.path.join(dir, name))
-
-            # Create a thumbnail
-            thumb = open(os.path.join(dir, name))
-            im = Image.open(thumb)
-            im.thumbnail((242,200), Image.ANTIALIAS)
-            # Create background
-            bg = Image.new('RGBA', (242,200))
-            loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
-            bg.paste(im, loc)
-            bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
-
-            # Append file name to file_ids
-            file_ids.append(name)
+    file_ids(request.files.getlist('images[]'))
 
     description = request.form.get('description')
     if description: description = escape(description)
@@ -373,7 +377,7 @@ def delete_postings():
         os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], f))
         # Thumbnail
         (name, ext) = os.path.splitext(f)
-        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb', ext])))
+        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb.png'])))
 
     # Else continue with the delete
     db.session.delete(posting)
