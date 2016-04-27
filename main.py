@@ -21,6 +21,8 @@ import os.path
 import uuid
 from flask import Flask, request, redirect, url_for, send_from_directory
 from werkzeug import secure_filename
+#from PIL import Image
+#from resizeimage import resizeimage
 
 ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 
@@ -262,6 +264,16 @@ def get_postings():
     else:
         return browse()
 
+# Serve an image
+@app.route('/api/images/<file>')
+def image_get(file):
+    dir = '/var/www/images/' + str(file[:3])
+    return send_from_directory(dir, file)
+
+# Serve a thumbnail still in testing
+#@app.route('/api/thumbs/<file>')
+#def thumb_get(file):
+#    return send_from_directory('/var/www/images/testcrop.jpg', file)
 # Add a new posting
 @app.route('/api/postings/', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
@@ -287,6 +299,14 @@ def post_postings():
 
             # Save each file
             f.save(os.path.join(dir, name))
+
+            # Create a thumbnail
+            #thumb_image = open(os.path.join(dir, name))
+            #thumb = Image.open(thumb_image)
+            #thumb = resizeimage.resize_cover(thumb, [242,200])
+            # Location and name to save thumbnail
+            #thumb.save('/var/www/images/testcrop.jpg')
+            #thumb_image.close()
             file_ids.append(name)
 
     description = request.form.get('description')
@@ -320,7 +340,7 @@ def post_postings():
 
     # Else continue
     post = Postings(owner=g.user['id'], description=description, cost=cost,
-        category=int(category), title=title, images=file_ids)
+        category=int(category), title=title, image=file_ids)
     
     # Add entry to database and commit
     # Also prevent duplicate entries due to double clicks
