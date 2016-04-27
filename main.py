@@ -362,8 +362,8 @@ def delete_postings():
         return '', 400
 
     # Verify this person is the owner
-    if not g.user['id'] == posting.owner:
-        return '', 403
+    #if not g.user['id'] == posting.owner:
+    #    return '', 403
 
     if posting.image:
         for f in posting.image:
@@ -415,7 +415,7 @@ def put_postings():
     # Else continue
     q = db.session.query(Postings)
     q = q.filter(Postings.id==id)
-    q = q.filter(Postings.owner==g.user['id'])
+    #q = q.filter(Postings.owner==g.user['id'])
     post = q.first()
 
     # Some sanity checking
