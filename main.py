@@ -297,7 +297,7 @@ def post_postings():
 
             # Create a thumbnail
             with open(os.path.join(dir, name)) as f:
-                im = Image.open()
+                im = Image.open(f)
                 im.thumbnail((242,200), Image.ANTIALIAS)
                 # Create background
                 bg = Image.new('RGBA', (242,200))
