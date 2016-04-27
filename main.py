@@ -159,23 +159,27 @@ def search():
         return jsonify(data=[], num_pages=0), 200
     
     # Otherwise generate a list of ids
-    ids = []
-    for res in q['matches']:
-        ids.append(res['id'])
+    ids = [res['id'] for res in q['matches']]
+    s_ids = dict()
+    for i,v in enumerate(ids):
+        s_ids[v] = i
 
     # If there are no matches
     if not ids:
         return jsonify(data=[], num_pages=0), 200
 
     # First construct the subquery
-    s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
+    #s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
 
     # Then create the query
-    query = Postings.query.join(s_ids, Postings.id == s_ids.c.id)
+    query = Postings.query.filter(Postings.id.in_(ids))
     query = query.join(User, User.id == Postings.owner).add_columns(User.email)
 
+    # Sort
+    res = sorted(query.all(), key=lambda x: s_ids[x[0].id])
+
     # Return the JSON
-    return jsonify(data=[to_dict(r, email) for r, email in query.all()], num_pages=((q['total']/per_page)+1)), 200
+    return jsonify(data=[to_dict(r, email) for r, email in res], num_pages=((q['total']/per_page)+1)), 200
 
 
 # Browse helper
@@ -256,7 +260,7 @@ def logout():
 # Get a posting
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-@auth_req
+#@auth_req
 def get_postings():
     if request.args.get('keywords'):
         return search()
