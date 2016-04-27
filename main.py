@@ -429,7 +429,7 @@ def put_postings():
     if im: 
         if post.image:
             # Clean up
-            for f in posting.image:
+            for f in post.image:
                 path = os.path.join(UPLOAD_FOLDER, f[:3], f)
                 if os.path.exists(path):
                     os.unlink(path)
