@@ -311,7 +311,7 @@ def image_get(file):
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
 @auth_req
 def post_postings():
-    file_ids(request.files.getlist('images[]'))
+    file_ids = images(request.files.getlist('images[]'))
 
     description = request.form.get('description')
     if description: description = escape(description)
@@ -373,11 +373,20 @@ def delete_postings():
     if not g.user['id'] == posting.owner:
         return '', 403
 
-    for f in posting.image:
-        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], f))
-        # Thumbnail
-        (name, ext) = os.path.splitext(f)
-        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb.png'])))
+    if posting.image:
+        for f in posting.image:
+            path = os.path.join(UPLOAD_FOLDER, f[:3], f)
+            if os.path.exists(path):
+                os.unlink(path)
+            else:
+                print 'No path at '+path
+            # Thumbnail
+            (name, ext) = os.path.splitext(f)
+            path = os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb.png']))
+            if os.path.exists(path):
+                os.unlink(path)
+            else:
+                print 'No path at '+path
 
     # Else continue with the delete
     db.session.delete(posting)
