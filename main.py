@@ -28,6 +28,7 @@ ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 CLIENT_ID = environ['WEB_CLIENT_ID']
 SEARCH_HOST = environ['SEARCH_HOST']
 SEARCH_PORT = int(environ['SEARCH_PORT'])
+UPLOAD_FOLDER = environ['UPLOAD_FOLDER']
 
 app = Flask(__name__)
 
@@ -38,7 +39,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Session configuration
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
-app.config['UPLOAD_FOLDER'] = '/var/www/images/'
 db.init_app(app)
 
 with app.app_context():
@@ -168,9 +168,6 @@ def search():
     if not ids:
         return jsonify(data=[], num_pages=0), 200
 
-    # First construct the subquery
-    #s_ids = db.session.query(func.unnest(array(ids)).label('id')).subquery('s_ids')
-
     # Then create the query
     query = Postings.query.filter(Postings.id.in_(ids))
     query = query.join(User, User.id == Postings.owner).add_columns(User.email)
@@ -179,7 +176,7 @@ def search():
     res = sorted(query.all(), key=lambda x: s_ids[x[0].id])
 
     # Return the JSON
-    return jsonify(data=[to_dict(r, email) for r, email in res], num_pages=((q['total']/per_page)+1)), 200
+    return jsonify(data=[to_dict(r, email) for r, email in res], num_pages=((q['total']/per_page)+1), total=query.count()), 200
 
 
 # Browse helper
@@ -232,7 +229,7 @@ def browse():
     page = query.paginate(page, per_page, error_out=False)
 
     # Return the JSON
-    return jsonify(data=[to_dict(r, email) for r,email in page.items], num_pages=page.pages), 200
+    return jsonify(data=[to_dict(r, email) for r,email in page.items], num_pages=page.pages, total=query.count()), 200
 
 #### Middleware ####
 # Authorization View (only used for login)
@@ -260,7 +257,7 @@ def logout():
 # Get a posting
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-#@auth_req
+@auth_req
 def get_postings():
     if request.args.get('keywords'):
         return search()
@@ -270,7 +267,7 @@ def get_postings():
 # Serve an image
 @app.route('/api/images/<file>')
 def image_get(file):
-    dir = '/var/www/images/' + str(file[:3])
+    dir = os.path.join(UPLOAD_FOLDER, str(file[:3]))
     return send_from_directory(dir, file)
 
 # Add a new posting
@@ -285,7 +282,7 @@ def post_postings():
             while True:
                 new_name = secure_filename(str(uuid.uuid4()))
                 name = new_name + ext
-                dir = os.path.join('/var/www/images', new_name[:3])
+                dir = os.path.join(UPLOAD_FOLDER, new_name[:3])
                 if os.path.exists(new_name + ext):
                     pass
                 elif os.path.isdir(dir):
@@ -371,6 +368,12 @@ def delete_postings():
     # Verify this person is the owner
     if not g.user['id'] == posting.owner:
         return '', 403
+
+    for f in posting.image:
+        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], f))
+        # Thumbnail
+        (name, ext) = os.path.splitext(f)
+        os.unlink(os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb', ext])))
 
     # Else continue with the delete
     db.session.delete(posting)
