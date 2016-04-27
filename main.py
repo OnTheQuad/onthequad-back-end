@@ -378,15 +378,11 @@ def delete_postings():
             path = os.path.join(UPLOAD_FOLDER, f[:3], f)
             if os.path.exists(path):
                 os.unlink(path)
-            else:
-                print 'No path at '+path
             # Thumbnail
             (name, ext) = os.path.splitext(f)
             path = os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb.png']))
             if os.path.exists(path):
                 os.unlink(path)
-            else:
-                print 'No path at '+path
 
     # Else continue with the delete
     db.session.delete(posting)
