@@ -434,7 +434,20 @@ def put_postings():
     if category: post.category = category
     if cost: post.cost = cost
     if title: post.title = title
-    if im: post.image = images(im)
+    if im: 
+        if post.image:
+            # Clean up
+            for f in posting.image:
+                path = os.path.join(UPLOAD_FOLDER, f[:3], f)
+                if os.path.exists(path):
+                    os.unlink(path)
+                # Thumbnail
+                (name, ext) = os.path.splitext(f)
+                path = os.path.join(UPLOAD_FOLDER, f[:3], ''.join([name, '_thumb.png']))
+                if os.path.exists(path):
+                    os.unlink(path)
+        # Always update the images
+        post.image = images(im)
 
     # Update the timestamp
     post.timestamp = func.now()
