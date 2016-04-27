@@ -296,13 +296,14 @@ def post_postings():
             f.save(os.path.join(dir, name))
 
             # Create a thumbnail
-            im = Image.open(f)
-            im.thumbnail((242,200), Image.ANTIALIAS)
-            # Create background
-            bg = Image.new('RGBA', (242,200))
-            loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
-            bg.paste(im, loc)
-            bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
+            with open(os.path.join(dir, name)) as f:
+                im = Image.open()
+                im.thumbnail((242,200), Image.ANTIALIAS)
+                # Create background
+                bg = Image.new('RGBA', (242,200))
+                loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
+                bg.paste(im, loc)
+                bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
 
             # Append file name to file_ids
             file_ids.append(name)
