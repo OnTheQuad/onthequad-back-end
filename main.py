@@ -132,8 +132,8 @@ def search():
         client.SetFilter('category', [category])
 
     # Paging
-    per_page = to_int(request.args.get('per_page', default=20))
-    page = to_int(request.args.get('page', default=1))
+    per_page = to_int(request.args.get('per_page', default=30), 30)
+    page = to_int(request.args.get('page', default=1), 1)
     if page < 1: page = 1
 
     # Use our SphinxSearch query to construct our page
@@ -192,16 +192,8 @@ def browse():
     max_cost = request.args.get('max_cost')
     if max_cost: max_cost = to_float(escape(max_cost))
 
-    per_page = request.args.get('per_page', default=20)
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 20
-    page = request.args.get('page', default=1)
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
+    per_page = to_int(request.args.get('per_page', default=30), 30)
+    page = to_int(request.args.get('page', default=1), 1)
 
     # Query
     query = Postings.query
