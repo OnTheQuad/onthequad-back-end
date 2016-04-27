@@ -418,6 +418,8 @@ def put_postings():
     title = request.form.get('title')
     if title: title = escape(title)
 
+    im = request.files.getlist('images[]')
+
     # Else continue
     q = db.session.query(Postings)
     q = q.filter(Postings.id==id)
@@ -432,6 +434,7 @@ def put_postings():
     if category: post.category = category
     if cost: post.cost = cost
     if title: post.title = title
+    if im: post.image = images(im)
 
     # Update the timestamp
     post.timestamp = func.now()
