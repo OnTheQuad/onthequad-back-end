@@ -251,7 +251,7 @@ def images(im_list):
             image = Image.open(thumb)
             if hasattr(image, '_getexif'): # only present in JPEGs
                 exif = image._getexif()    # returns None if no EXIF data
-                if e is not None:
+                if exif is not None:
                     orientation = exif.get(274, None)
 
                     if orientation == 3:   image = image.transpose(Image.ROTATE_180)
