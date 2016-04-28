@@ -248,33 +248,30 @@ def images(im_list):
             # Create a thumbnail
             thumb = open(os.path.join(dir, name))
 
-            try:
-                im = Image.open(thumb)
-                for orientation in ExifTags.TAGS.keys():
+            image = Image.open(thumb)
+            if hasattr(image, '_getexif'): # only present in JPEGs
+                for orientation in ExifTags.TAGS.keys(): 
                     if ExifTags.TAGS[orientation]=='Orientation':
-                        break
-                exif=dict(thumb._getexif().items())
+                        break 
+                e = image._getexif()       # returns None if no EXIF data
+                if e is not None:
+                    exif=dict(e.items())
+                    orientation = exif[orientation] 
 
-                if exif[orientation] == 3:
-                    im=im.rotate(180, expand=True)
-                elif exif[orientation] == 6:
-                    im=im.rotate(270, expand=True)
-                elif exif[orientation] == 8:
-                    im=im.rotate(90, expand=True)
+                    if orientation == 3:   image = image.transpose(Image.ROTATE_180)
+                    elif orientation == 6: image = image.transpose(Image.ROTATE_270)
+                    elif orientation == 8: image = image.transpose(Image.ROTATE_90)
 
-            except (AttributeError, KeyError, IndexError):
-                # cases: image don't have getexif
-                pass
-
-            im.thumbnail((242,200), Image.ANTIALIAS)
+            image.thumbnail((242,200), Image.ANTIALIAS)
             # Create background
             bg = Image.new('RGBA', (242,200))
             loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
-            bg.paste(im, loc)
+            bg.paste(image, loc)
             bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
 
             # Append file name to file_ids
             file_ids.append(name)
+            
         return file_ids
 
 #### Middleware ####
