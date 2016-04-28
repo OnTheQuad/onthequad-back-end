@@ -235,7 +235,7 @@ def images(im_list):
                 if os.path.exists(new_name + ext):
                     pass
                 elif os.path.isdir(dir):
-                    if len(os.listidr(dir)) <= 300:
+                    if len(os.listdir(dir)) <= 300:
                         break
                 # Make a new directory
                 else:
