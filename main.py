@@ -317,13 +317,13 @@ def post_postings():
     file_ids = images(request.files.getlist('images[]'))
 
     description = request.form.get('description')
-    if description: description = escape(description)
+    if not description is None: description = escape(description)
     category = request.form.get('category')
-    if category: category = escape(category)
+    if not category is None: category = escape(category)
     cost = request.form.get('cost')
-    if cost: cost = escape(cost)
+    if not cost is None: cost = escape(cost)
     title = request.form.get('title')
-    if title:
+    if not title is None:
         title = escape(title)
     else:
         return 'No title given', 400
@@ -398,19 +398,19 @@ def delete_postings():
 def put_postings():
     id = request.form.get('id')
     # Some error handling
-    if not id:
+    if id is None:
         return 'Bad ID', 400
     id = escape(id)
 
     description = request.form.get('description')
-    if description: description = escape(description)
+    if not description is None: description = escape(description)
     category = request.form.get('category')
-    if category:
+    if not category is None:
         category = escape(category)
         if not db.session.query(exists().where(Categories.id == category)):
             return 'Bad category', 400
     cost = request.form.get('cost')
-    if cost:
+    if not cost is None:
         cost = escape(cost)
         try:
             cost = float(cost)
@@ -419,7 +419,7 @@ def put_postings():
         except (ValueError, TypeError):
             return 'Bad cost', 400
     title = request.form.get('title')
-    if title: title = escape(title)
+    if not title is None: title = escape(title)
 
     im = request.files.getlist('images[]')
 
@@ -433,11 +433,11 @@ def put_postings():
     if not post:
         return 'No post with that given ID', 400
 
-    if description: post.description = description
-    if category: post.category = category
-    if cost: post.cost = cost
-    if title: post.title = title
-    if im: 
+    if not description is None: post.description = description
+    if not category is None: post.category = category
+    if not cost is None: post.cost = cost
+    if not title is None: post.title = title
+    if not im is None: 
         if post.image:
             # Clean up
             for f in post.image:
