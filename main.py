@@ -21,7 +21,7 @@ import os.path
 import uuid
 from flask import Flask, request, redirect, url_for, send_from_directory
 from werkzeug import secure_filename
-from PIL import Image
+from PIL import Image, ExifTags
 
 ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 
@@ -247,7 +247,25 @@ def images(im_list):
 
             # Create a thumbnail
             thumb = open(os.path.join(dir, name))
-            im = Image.open(thumb)
+
+            try:
+                im = Image.open(thumb)
+                for orientation in ExifTags.TAGS.keys():
+                    if ExifTags.TAGS[orientation]=='Orientation':
+                        break
+                exif=dict(thumb._getexif().items())
+
+                if exif[orientation] == 3:
+                    im=im.rotate(180, expand=True)
+                elif exif[orientation] == 6:
+                    im=im.rotate(270, expand=True)
+                elif exif[orientation] == 8:
+                    im=im.rotate(90, expand=True)
+
+            except (AttributeError, KeyError, IndexError):
+                # cases: image don't have getexif
+                pass
+
             im.thumbnail((242,200), Image.ANTIALIAS)
             # Create background
             bg = Image.new('RGBA', (242,200))
