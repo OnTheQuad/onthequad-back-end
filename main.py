@@ -272,7 +272,7 @@ def images(im_list):
             # Append file name to file_ids
             file_ids.append(name)
 
-        return file_ids
+    return file_ids
 
 #### Middleware ####
 # Authorization View (only used for login)
