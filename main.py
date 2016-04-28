@@ -317,13 +317,13 @@ def post_postings():
     file_ids = images(request.files.getlist('images[]'))
 
     description = request.form.get('description')
-    if not description is None: description = escape(description)
+    if description: description = escape(description)
     category = request.form.get('category')
     if not category is None: category = escape(category)
     cost = request.form.get('cost')
     if not cost is None: cost = escape(cost)
     title = request.form.get('title')
-    if not title is None:
+    if title:
         title = escape(title)
     else:
         return 'No title given', 400
@@ -403,7 +403,7 @@ def put_postings():
     id = escape(id)
 
     description = request.form.get('description')
-    if not description is None: description = escape(description)
+    if description: description = escape(description)
     category = request.form.get('category')
     if not category is None:
         category = escape(category)
@@ -419,7 +419,7 @@ def put_postings():
         except (ValueError, TypeError):
             return 'Bad cost', 400
     title = request.form.get('title')
-    if not title is None: title = escape(title)
+    if title: title = escape(title)
 
     im = request.files.getlist('images[]')
 
@@ -433,11 +433,11 @@ def put_postings():
     if not post:
         return 'No post with that given ID', 400
 
-    if not description is None: post.description = description
+    if description: post.description = description
     if not category is None: post.category = category
     if not cost is None: post.cost = cost
-    if not title is None: post.title = title
-    if not im is None: 
+    if title: post.title = title
+    if im: 
         if post.image:
             # Clean up
             for f in post.image:
