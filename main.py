@@ -265,13 +265,13 @@ def images(im_list):
             image.thumbnail((242,200), Image.ANTIALIAS)
             # Create background
             bg = Image.new('RGBA', (242,200))
-            loc = ((bg.size[0]-im.size[0])/2, (bg.size[1]-im.size[1])/2)
+            loc = ((bg.size[0]-image.size[0])/2, (bg.size[1]-image.size[1])/2)
             bg.paste(image, loc)
             bg.save(os.path.join(dir, ''.join([new_name, '_thumb', '.png'])))
 
             # Append file name to file_ids
             file_ids.append(name)
-            
+
         return file_ids
 
 #### Middleware ####
