@@ -296,7 +296,7 @@ def logout():
 # Get a posting
 @app.route('/api/postings/', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=environ['CORS_URLS'].split(','), supports_credentials=True)
-@auth_req
+#@auth_req
 def get_postings():
     if request.args.get('keywords'):
         return search()
@@ -373,8 +373,8 @@ def delete_postings():
         return '', 400
 
     # Verify this person is the owner
-    #if not g.user['id'] == posting.owner:
-    #    return '', 403
+    if not g.user['id'] == posting.owner:
+        return '', 403
 
     if posting.image:
         for f in posting.image:
